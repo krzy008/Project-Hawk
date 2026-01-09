@@ -4,7 +4,6 @@ import { Trophy, ChevronLeft, ChevronRight, BadgeCheck, Lock } from 'lucide-reac
 
 export interface LeaderboardEntry {
   id: string;
-  // Fix: Allow rank to be a string for special cases like '---' when user is not ranked
   rank: number | string;
   username: string;
   avatarUrl: string;
@@ -17,7 +16,6 @@ export interface LeaderboardEntry {
 
 interface LeaderboardViewProps {
   entries: LeaderboardEntry[];
-  // Fix: Changed from void to () => void to allow passing a function as a prop.
   onBack: () => void;
   onUserClick: (userId: string) => void;
   currentUser?: {
@@ -33,54 +31,23 @@ type RankingTab = 'hawk' | 'followers';
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/9.x/shapes/svg?seed=hawk&backgroundColor=000000&shapeColor=FFA31A";
 
-// Varied and Logical Mock Bot Accounts (Expanded to 50 for realistic testing)
+// Logical Mock Bot Accounts - Exactly 3 as requested
 export const PREVIEW_BOTS: LeaderboardEntry[] = [
-  { id: 'bot-1', rank: 0, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 1450.5, animeCount: 1620, followersCount: 12400, isPrivate: false },
-  { id: 'bot-2', rank: 0, username: 'KaoriVibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 1240.2, animeCount: 1100, followersCount: 8500, isPrivate: false },
-  { id: 'bot-3', rank: 0, username: 'GhostInShell', avatarUrl: 'https://wallpapers.com/images/hd/all-anime-chainsaw-man-character-power-xar7575kzokbuyuv.jpg', hawkRating: 1100.0, animeCount: 850, followersCount: 3100, isPrivate: true },
-  { id: 'bot-4', rank: 0, username: 'LuffyFan99', avatarUrl: 'https://w0.peakpx.com/wallpaper/261/829/HD-wallpaper-monkey-d-luffy-portrait-artwork-manga-one-piece.jpg', hawkRating: 1050.5, animeCount: 1250, followersCount: 2200, isPrivate: false },
-  { id: 'bot-5', rank: 0, username: 'ThorfinnThirst', avatarUrl: 'https://wallpapers.com/images/hd/eren-yeager-pfp-with-bright-eyes-5yilum1awdhkr9zm.jpg', hawkRating: 980.4, animeCount: 1100, followersCount: 3500, isPrivate: false },
-  { id: 'bot-6', rank: 0, username: 'AnimeLord', avatarUrl: 'https://wallpapers.com/images/hd/naruto-face-hpracgzord0mm3tv.jpg', hawkRating: 890.2, animeCount: 980, followersCount: 3850, isPrivate: false },
-  { id: 'bot-7', rank: 0, username: 'BerserkBeast', avatarUrl: 'https://i.redd.it/jogiai9xdvs71.jpg', hawkRating: 750.1, animeCount: 840, followersCount: 1100, isPrivate: false },
-  { id: 'bot-8', rank: 0, username: 'MakimaSimp', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 720.0, animeCount: 810, followersCount: 3100, isPrivate: true },
-  { id: 'bot-9', rank: 0, username: 'IchigoBankai', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=ichigo&backgroundColor=000000', hawkRating: 680.7, animeCount: 750, followersCount: 720, isPrivate: true },
-  { id: 'bot-10', rank: 0, username: 'NeoNexus', avatarUrl: 'https://www.hdwallpapers.in/download/darling_in_the_franxx_pink_hair_green_eyes_zero_two_hd_anime-1600x900.jpg', hawkRating: 610.9, animeCount: 700, followersCount: 530, isPrivate: false },
-  // 11-20 (VERIFIED & ELITE)
-  { id: 'bot-11', rank: 0, username: 'VashTheStampede', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=vash', hawkRating: 590.0, animeCount: 650, followersCount: 400, isPrivate: false },
-  { id: 'bot-12', rank: 0, username: 'SpikeSpiegel', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=spike', hawkRating: 550.8, animeCount: 610, followersCount: 440, isPrivate: false },
-  { id: 'bot-13', rank: 0, username: 'Yusuke_Urameshi', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=yusuke', hawkRating: 480.5, animeCount: 550, followersCount: 1200, isPrivate: false },
-  { id: 'bot-14', rank: 0, username: 'GonFreecss', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=gon', hawkRating: 420.2, animeCount: 480, followersCount: 300, isPrivate: true },
-  { id: 'bot-15', rank: 0, username: 'KilluaZoldyck', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=killua', hawkRating: 395.0, animeCount: 450, followersCount: 280, isPrivate: false },
-  { id: 'bot-16', rank: 0, username: 'ZoroLost', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=zoro', hawkRating: 350.2, animeCount: 420, followersCount: 950, isPrivate: false },
-  { id: 'bot-17', rank: 0, username: 'SanjiCook', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=sanji', hawkRating: 320.4, animeCount: 380, followersCount: 180, isPrivate: false },
-  { id: 'bot-18', rank: 0, username: 'NamiBeli', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nami', hawkRating: 310.1, animeCount: 350, followersCount: 120, isPrivate: true },
-  { id: 'bot-19', rank: 0, username: 'RobinPoneglyph', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=robin', hawkRating: 305.5, animeCount: 320, followersCount: 150, isPrivate: false },
-  { id: 'bot-20', rank: 0, username: 'BrookBones', avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=brook', hawkRating: 301.2, animeCount: 310, followersCount: 90, isPrivate: false },
-  // 21-50 (NEWBIES & VERIFIED)
-  ...Array.from({ length: 30 }, (_, i) => ({
-    id: `bot-${i + 21}`,
-    rank: 0,
-    username: `User_Fan_${i + 21}`,
-    avatarUrl: `https://api.dicebear.com/9.x/shapes/svg?seed=bot${i + 21}&backgroundColor=000000`,
-    hawkRating: 290 - (i * 8),
-    animeCount: 200 - (i * 5),
-    followersCount: Math.floor(100 - (i * 2)),
-    isPrivate: (i + 21) % 4 === 0
-  }))
+  { id: 'bot-1', rank: 1, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 18.0, animeCount: 10, followersCount: 124, isPrivate: false },
+  { id: 'bot-2', rank: 2, username: 'KaoriVibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 14.4, animeCount: 9, followersCount: 85, isPrivate: false },
+  { id: 'bot-4', rank: 3, username: 'LuffyFan99', avatarUrl: 'https://w0.peakpx.com/wallpaper/261/829/HD-wallpaper-monkey-d-luffy-portrait-artwork-manga-one-piece.jpg', hawkRating: 16.0, animeCount: 8, followersCount: 22, isPrivate: false }
 ];
 
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ entries, onBack, onUserClick, currentUser }) => {
   const [activeTab, setActiveTab] = useState<RankingTab>('hawk');
 
-  useEffect(() => {
-    console.log('Preview mode - using top 50 leaderboard simulation');
-  }, []);
-
-  const top50List = useMemo(() => {
-    // Merge real entries with mock bots to ensure a full list of 50
+  const topList = useMemo(() => {
+    // Only use the real entries and the 3 refined bots
     const combined = [...entries];
+    
+    // Add unique bots only
     PREVIEW_BOTS.forEach(bot => {
-      if (!combined.some(e => e.username === bot.username)) {
+      if (!combined.some(e => e.id === bot.id)) {
         combined.push(bot);
       }
     });
@@ -90,14 +57,14 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ entries, onBac
       return (b.followersCount || 0) - (a.followersCount || 0);
     });
 
-    return sorted.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 }));
+    return sorted.map((e, i) => ({ ...e, rank: i + 1 }));
   }, [entries, activeTab]);
 
   const userRank = useMemo(() => {
     if (!currentUser) return 0;
-    const foundIdx = top50List.findIndex(e => e.username === currentUser.username);
+    const foundIdx = topList.findIndex(e => e.username === currentUser.username);
     return foundIdx !== -1 ? foundIdx + 1 : 0;
-  }, [currentUser, top50List]);
+  }, [currentUser, topList]);
 
   const renderEntry = (entry: LeaderboardEntry, isUser: boolean = false) => {
     const pts = entry.hawkRating;
@@ -143,7 +110,6 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ entries, onBac
                 (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
               }}
             />
-            {/* Fix: Check for 'number' type before using numeric comparison operators on rank */}
             {typeof entry.rank === 'number' && entry.rank <= 3 && (
               <div className="absolute inset-0 border-2 border-hawk-gold rounded-full opacity-50"></div>
             )}
@@ -213,7 +179,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ entries, onBac
 
       <div className="flex-1 p-4 max-w-3xl mx-auto w-full pb-32">
         <div className="space-y-3 pt-2">
-          {top50List.map((entry) => renderEntry(entry))}
+          {topList.map((entry) => renderEntry(entry))}
         </div>
       </div>
 
@@ -223,7 +189,6 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ entries, onBac
           <div className="max-w-3xl w-full">
             {renderEntry({
               id: 'current-user',
-              // Fix: Assigning rank correctly as string | number based on current user ranking
               rank: userRank || '---',
               username: currentUser.username,
               avatarUrl: currentUser.avatarUrl,

@@ -59,6 +59,7 @@ export const Auth: React.FC = () => {
           email: cleanEmail,
           password,
           options: {
+            emailRedirectTo: window.location.origin,
             data: {
               username: cleanUsername,
               avatar_url: null,

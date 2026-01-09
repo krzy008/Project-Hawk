@@ -12,7 +12,6 @@ import { ProfileView } from './components/ProfileView';
 import { MalImportView } from './components/MalImportView';
 import { FriendsView, FriendUser } from './components/FriendsView';
 import { FAQsView } from './components/FAQsView';
-// Import PREVIEW_BOTS from LeaderboardView to fix missing reference error
 import { LeaderboardView, LeaderboardEntry, PREVIEW_BOTS } from './components/LeaderboardView';
 import { Search, LogOut, Loader, User, LayoutGrid, Compass, Filter, ArrowDownToLine, Trophy, Users, Plus, SlidersHorizontal, HelpCircle, Wallet, Copy, ChevronLeft, Info, MessageCircle, X } from 'lucide-react';
 import { api } from './lib/api';
@@ -65,13 +64,22 @@ interface HistoryState {
 }
 
 const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-    { id: '1', rank: 1, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 785.4, animeCount: 412, followersCount: 4122 },
-    { id: '2', rank: 2, username: 'Kaori_Vibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 642.1, animeCount: 298, followersCount: 3850 },
-    { id: '3', rank: 3, username: 'GhostInShell', avatarUrl: 'https://wallpapers.com/images/hd/all-anime-chainsaw-man-character-power-xar7575kzokbuyuv.jpg', hawkRating: 598.0, animeCount: 256, followersCount: 3100 },
+    { id: 'bot-1', rank: 1, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 18.0, animeCount: 10, followersCount: 4122 },
+    { id: 'bot-2', rank: 2, username: 'KaoriVibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 14.4, animeCount: 9, followersCount: 3850 },
+    { id: 'bot-4', rank: 3, username: 'LuffyFan99', avatarUrl: 'https://w0.peakpx.com/wallpaper/261/829/HD-wallpaper-monkey-d-luffy-portrait-artwork-manga-one-piece.jpg', hawkRating: 16.0, animeCount: 8, followersCount: 2200 },
 ];
 
 const MOCK_ANIME_FOR_OTHERS: Anime[] = [
-    { id: 'mock-1', title: 'One Piece', status: AnimeStatus.Watching, watched: 1116, total: 1116, rating: 10, season: 'Fall 1999', notes: 'Peak fiction.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21-69Y0pGatPAX8.jpg', genres: ['Action', 'Adventure', 'Comedy'] },
+    { id: 'mock-1', title: 'One Piece', status: AnimeStatus.Watching, watched: 1116, total: 1116, rating: 10, season: 'Fall 1999', notes: 'Peak fiction.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21-69Y0pGatPAX8.jpg', genres: ['Action', 'Adventure', 'Comedy'], duration: 24 },
+    { id: 'mock-2', title: 'Death Note', status: AnimeStatus.Finished, watched: 37, total: 37, rating: 9, season: 'Fall 2006', notes: 'God of the new world.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx1535-7Xis7pmO6pCc.jpg', genres: ['Mystery', 'Psychological', 'Thriller'], duration: 23 },
+    { id: 'mock-3', title: 'Attack on Titan', status: AnimeStatus.Finished, watched: 25, total: 25, rating: 10, season: 'Spring 2013', notes: 'Shinzou wo Sasageyo!', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx16498-73peTReV9i9v.jpg', genres: ['Action', 'Drama', 'Fantasy'], duration: 24 },
+    { id: 'mock-4', title: 'Fullmetal Alchemist: Brotherhood', status: AnimeStatus.Finished, watched: 64, total: 64, rating: 10, season: 'Spring 2009', notes: 'Equivalent exchange.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx5114-6F399N7zMof9.jpg', genres: ['Action', 'Adventure', 'Drama', 'Fantasy'], duration: 24 },
+    { id: 'mock-5', title: 'Your Name.', status: AnimeStatus.Finished, watched: 1, total: 1, rating: 9, season: 'Summer 2016', notes: 'Beautiful animation.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21519-79mWEalA67YF.jpg', genres: ['Romance', 'Drama', 'Supernatural'], duration: 107 },
+    { id: 'mock-6', title: 'Demon Slayer', status: AnimeStatus.Watching, watched: 12, total: 26, rating: 8, season: 'Spring 2019', notes: 'Ufotable carrying.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx101922-WBsBl0Clmg9d.jpg', genres: ['Action', 'Adventure', 'Supernatural'], duration: 23 },
+    { id: 'mock-7', title: 'Jujutsu Kaisen', status: AnimeStatus.Finished, watched: 24, total: 24, rating: 9, season: 'Fall 2020', notes: 'Domain Expansion.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx113415-bbBWj4PByu12.jpg', genres: ['Action', 'Supernatural'], duration: 23 },
+    { id: 'mock-8', title: 'Cyberpunk: Edgerunners', status: AnimeStatus.Finished, watched: 10, total: 10, rating: 10, season: 'Fall 2022', notes: 'I want to stay at your house.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx120547-066GzXW0R8zS.jpg', genres: ['Action', 'Sci-Fi'], duration: 25 },
+    { id: 'mock-9', title: 'Steins;Gate', status: AnimeStatus.Finished, watched: 24, total: 24, rating: 10, season: 'Spring 2011', notes: 'El Psyc Kongroo.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx9253-764972.jpg', genres: ['Sci-Fi', 'Thriller'], duration: 24 },
+    { id: 'mock-10', title: 'Monster', status: AnimeStatus.Watching, watched: 40, total: 74, rating: 9, season: 'Spring 2004', notes: 'Johan is the best antagonist.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx19-Y9vB7VzRhkWn.jpg', genres: ['Drama', 'Mystery', 'Psychological', 'Thriller'], duration: 24 },
 ];
 
 const PREVIEW_SESSION = {
@@ -291,7 +299,7 @@ const App: React.FC = () => {
     const { data: inserted, error } = await supabase.from('watchlist').upsert([mapToDb(data, session.user.id)]).select();
     if (error) {
       console.error("Supabase Add Error:", error);
-      alert("Failed to save. Database connection issue.");
+      alert(`Save failed: ${error.message || 'Database error'}`);
       return;
     }
     if (inserted) {
@@ -310,7 +318,7 @@ const App: React.FC = () => {
     const { error } = await supabase.from('watchlist').update(mapToDb(data, session.user.id)).eq('anime_id', Number(selectedAnimeId)).eq('user_id', session.user.id);
     if (error) {
       console.error("Supabase Edit Error:", error);
-      alert("Update failed.");
+      alert(`Update failed: ${error.message}`);
       return;
     }
     fetchAnime(session.user.id);
@@ -380,7 +388,7 @@ const App: React.FC = () => {
         };
         const isFollowing = viewingProfile ? bookmarkedFriends.some(f => f.id === viewingProfile.id) : false;
 
-        return <ProfileView profile={profileData} animeList={viewingProfile ? MOCK_ANIME_FOR_OTHERS : animeList} onBack={handleBack} isOwnProfile={!viewingProfile} isFollowing={isFollowing} onUpdateProfile={async (data) => {
+        return <ProfileView profile={profileData} animeList={viewingProfile ? MOCK_ANIME_FOR_OTHERS.slice(0, viewingProfile.animeCount) : animeList} onBack={handleBack} isOwnProfile={!viewingProfile} isFollowing={isFollowing} onUpdateProfile={async (data) => {
             const { error } = await supabase.auth.updateUser({ data });
             if (!error) {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -402,9 +410,16 @@ const App: React.FC = () => {
             }
         }} onAnimeClick={(id) => { const list = viewingProfile ? MOCK_ANIME_FOR_OTHERS : animeList; const a = list.find(x => x.id === id); if (a) handleOpenDetail(a); }} />;
     }
-    if (view === 'leaderboard') return <LeaderboardView entries={MOCK_LEADERBOARD} onBack={handleBack} onUserClick={(id) => { const u = MOCK_LEADERBOARD.find(x => x.id === id); if (u) { pushHistory(); setViewingProfile(u); setView('profile'); } }} currentUser={{ username: session.user.user_metadata.username, avatarUrl: session.user.user_metadata.avatar_url, hawkRating: 0, animeCount: animeList.length, followersCount: 0 }} />;
+    if (view === 'leaderboard') return <LeaderboardView entries={MOCK_LEADERBOARD} onBack={handleBack} onUserClick={(id) => { 
+        const u = [...MOCK_LEADERBOARD, ...PREVIEW_BOTS].find(x => x.id === id); 
+        if (u) { 
+            pushHistory(); 
+            setViewingProfile(u); 
+            setView('profile'); 
+        } 
+    }} currentUser={{ username: session.user.user_metadata.username, avatarUrl: session.user.user_metadata.avatar_url, hawkRating: 0, animeCount: animeList.length, followersCount: 0 }} />;
     if (view === 'friends') return <FriendsView onBack={handleBack} bookmarkedFriends={bookmarkedFriends} onToggleBookmark={(u) => setBookmarkedFriends(prev => prev.some(f => f.id === u.id) ? prev.filter(f => f.id !== u.id) : [...prev, u])} onUserClick={(id) => { 
-        const u = PREVIEW_BOTS.find(x => x.id === id);
+        const u = [...MOCK_LEADERBOARD, ...PREVIEW_BOTS].find(x => x.id === id);
         if (u) {
             pushHistory();
             setViewingProfile(u);

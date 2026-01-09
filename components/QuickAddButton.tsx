@@ -72,8 +72,8 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
         rating: null,
         notes: (anime.description || '').replace(/[<>]/g, '').slice(0, 2000),
         genres: (anime.genres || []).map(g => g.replace(/[<>]/g, '')),
-        duration: anime.duration || 24,
-        seasons: []
+        seasons: [],
+        duration: anime.duration || 24
       };
 
       const { error } = await supabase

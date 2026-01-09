@@ -43,7 +43,6 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({ anime 
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id || '00000000-0000-0000-0000-000000000000';
 
-      // Robust ID parsing: ensure we have a number for anime_id in the watchlist table
       let animeId: number;
       if (typeof anime.id === 'number') {
         animeId = anime.id;
@@ -64,8 +63,8 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({ anime 
         rating: formData.rating > 0 ? formData.rating : null,
         notes: anime.description || '',
         genres: anime.genres || [],
-        duration: anime.duration || 24,
-        seasons: []
+        seasons: [],
+        duration: anime.duration || 24
       };
 
       const { error } = await supabase
@@ -78,7 +77,7 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({ anime 
       setIsOpen(false);
     } catch (err: any) {
       console.error('HAWK Modal Save Detail Error:', err);
-      setErrorMsg(err.message || 'Connection failed - try refresh');
+      setErrorMsg(err.message || 'Connection failed - check column schema');
     } finally {
       setLoading(false);
     }
@@ -96,13 +95,11 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({ anime 
 
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
-          {/* Opaque dark backdrop */}
           <div 
             className="fixed inset-0 bg-black/98 backdrop-blur-xl" 
             onClick={() => !loading && setIsOpen(false)} 
           />
           
-          {/* Modal Container with solid black background to fix transparency */}
           <div className="relative w-full max-w-md bg-[#0A0A0A] border border-hawk-ui rounded-[32px] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,1)] animate-fade-in z-[10000] opacity-100">
             <div className="p-6 border-b border-hawk-ui flex items-center justify-between bg-black">
               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[#FFD60A]">NEW ENTRY</h3>
