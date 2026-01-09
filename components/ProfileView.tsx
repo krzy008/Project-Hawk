@@ -112,6 +112,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
     const displayFollowers = profile.followersCount ?? 0;
     const displayAnimeCount = profile.animeCount ?? animeList.length;
 
+    const filteredEntries = useMemo(() => {
+        if (!selectedStatus) return [];
+        return animeList.filter(a => a.status === selectedStatus);
+    }, [animeList, selectedStatus]);
+
     const rankInfo = useMemo(() => {
         if (displayRating >= 1000) return { tag: 'HAWK CERTIFIED', color: 'text-red-500', glow: 'drop-shadow-[0_0_12px_rgba(239,68,68,0.7)]', tickColor: 'text-red-500' };
         if (displayRating >= 600) return { tag: 'ELITE', color: 'text-yellow-400', glow: 'drop-shadow-[0_0_12px_rgba(251,191,36,0.7)]', tickColor: 'text-yellow-400' };
@@ -163,24 +168,48 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
 
     const StatusCard = ({ status, label, icon: Icon, color }: { status: AnimeStatus, label: string, icon: any, color: string }) => {
         const count = calculatedStats.counts[status];
+        const isActive = selectedStatus === status;
+        
         return (
-            <button 
-                onClick={() => setSelectedStatus(status)}
-                className="w-full flex items-center justify-between p-5 bg-hawk-ui/40 border border-hawk-ui/60 hover:border-hawk-gold/30 rounded-[28px] transition-all duration-300 group"
-            >
-                <div className="flex items-center gap-5">
-                    <div className="p-3 rounded-xl bg-hawk-base/60 shadow-inner">
-                        <Icon className={`w-5 h-5 ${color}`} strokeWidth={2.5} />
+            <div className="space-y-4">
+                <button 
+                    onClick={() => setSelectedStatus(isActive ? null : status)}
+                    className={`w-full flex items-center justify-between p-5 bg-hawk-ui/40 border rounded-[28px] transition-all duration-300 group ${
+                        isActive ? 'border-hawk-gold bg-hawk-gold/5' : 'border-hawk-ui/60 hover:border-hawk-gold/30'
+                    }`}
+                >
+                    <div className="flex items-center gap-5">
+                        <div className={`p-3 rounded-xl bg-hawk-base/60 shadow-inner ${isActive ? 'text-hawk-gold' : color}`}>
+                            <Icon className="w-5 h-5" strokeWidth={2.5} />
+                        </div>
+                        <span className={`text-xs font-black uppercase tracking-[0.2em] transition-colors ${isActive ? 'text-hawk-gold' : 'text-white'}`}>
+                            {label}
+                        </span>
                     </div>
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-white group-hover:text-hawk-gold transition-colors">
-                        {label}
-                    </span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <span className="text-xl font-black text-white font-mono">{count}</span>
-                    <ChevronDown className="w-5 h-5 text-hawk-textMuted group-hover:text-hawk-gold transition-colors" />
-                </div>
-            </button>
+                    <div className="flex items-center gap-4">
+                        <span className={`text-xl font-black font-mono ${isActive ? 'text-hawk-gold' : 'text-white'}`}>{count}</span>
+                        <ChevronDown className={`w-5 h-5 text-hawk-textMuted group-hover:text-hawk-gold transition-all duration-300 ${isActive ? 'rotate-180 text-hawk-gold' : ''}`} />
+                    </div>
+                </button>
+                
+                {isActive && (
+                    <div className="grid gap-3 px-1 animate-slide-up">
+                        {filteredEntries.length === 0 ? (
+                            <div className="py-8 text-center border border-dashed border-hawk-ui rounded-[28px] opacity-40">
+                                <p className="text-[10px] font-bold uppercase tracking-widest italic">No entries in this sector</p>
+                            </div>
+                        ) : (
+                            filteredEntries.map(anime => (
+                                <AnimeCard 
+                                    key={anime.id} 
+                                    anime={anime} 
+                                    onClick={() => onAnimeClick?.(anime.id)} 
+                                />
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
         );
     };
 
@@ -231,24 +260,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
                                 <div className="h-10 flex items-center justify-center mb-1">
                                     <span className="text-hawk-gold font-black text-2xl font-mono leading-none">{displayRating}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5">
-                                    <Trophy className="w-3 h-3" /> HAWK PTS
+                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
+                                    <Trophy className="w-3 h-3 shrink-0" /> HAWK PTS
                                 </div>
                             </div>
                             <div className="flex flex-col items-center border-r border-hawk-ui/40">
                                 <div className="h-10 flex items-center justify-center mb-1">
                                     <span className="text-white font-black text-2xl font-mono leading-none">{displayFollowers}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5">
-                                    <Users className="w-3 h-3" /> FOLLOWERS
+                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
+                                    <Users className="w-3 h-3 shrink-0" /> CIRCLE
                                 </div>
                             </div>
                             <div className="flex flex-col items-center">
                                 <div className="h-10 flex items-center justify-center mb-1">
                                     <span className="text-hawk-gold font-black text-2xl font-mono leading-none">{calculatedStats.meanScore}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5">
-                                    <Star className="w-3 h-3" /> MEAN SCORE
+                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
+                                    <Star className="w-3 h-3 shrink-0" /> MEAN
                                 </div>
                             </div>
                         </div>
@@ -260,24 +289,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
                                 <div className="h-10 flex items-center justify-center mb-1">
                                     <span className="text-white font-black text-xl font-mono leading-none whitespace-nowrap">{calculatedStats.watchTimeStr}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5">
-                                    <Timer className="w-3 h-3" /> WATCHTIME
+                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
+                                    <Timer className="w-3 h-3 shrink-0" /> WATCH
                                 </div>
                             </div>
                             <div className="flex flex-col items-center border-r border-hawk-ui/40">
                                 <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-white font-black text-base uppercase tracking-widest leading-none truncate w-full text-center px-1">{calculatedStats.favGenre}</span>
+                                    <span className="text-white font-black text-[10px] uppercase tracking-widest leading-none truncate w-full text-center px-1">{calculatedStats.favGenre}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5">
-                                    <BarChart3 className="w-3 h-3" /> FAV GENRE
+                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
+                                    <BarChart3 className="w-3 h-3 shrink-0" /> GENRE
                                 </div>
                             </div>
                             <div className="flex flex-col items-center">
                                 <div className="h-10 flex items-center justify-center mb-1">
                                     <span className="text-white font-black text-2xl font-mono leading-none">{displayAnimeCount}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5">
-                                    <BookOpen className="w-3 h-3" /> ENTRIES
+                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
+                                    <BookOpen className="w-3 h-3 shrink-0" /> LOG
                                 </div>
                             </div>
                         </div>

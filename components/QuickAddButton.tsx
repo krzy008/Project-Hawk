@@ -43,9 +43,12 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
       
-      if (!userId) {
+      // Fixed: Properly check for Guest/Preview ID which should act as unauthenticated for write operations
+      const userId = session?.user?.id;
+      const isGuest = !userId || userId === '00000000-0000-0000-0000-000000000000';
+      
+      if (isGuest) {
         throw new Error("Login required to save progress");
       }
 
@@ -90,6 +93,11 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
       setErrorMsg(err.message || 'Connection failed');
       setStatus('error');
       setTimeout(() => { setStatus('idle'); setErrorMsg(null); }, 4000);
+      
+      // Fixed: If it's a login error, notify the app to show Auth
+      if (err.message.includes("Login required")) {
+        window.dispatchEvent(new CustomEvent('hawk_auth_required'));
+      }
     }
   };
 

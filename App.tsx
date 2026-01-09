@@ -64,9 +64,9 @@ interface HistoryState {
 }
 
 const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-    { id: 'bot-1', rank: 1, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 18.0, animeCount: 10, followersCount: 4122 },
-    { id: 'bot-2', rank: 2, username: 'KaoriVibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 14.4, animeCount: 9, followersCount: 3850 },
-    { id: 'bot-4', rank: 3, username: 'LuffyFan99', avatarUrl: 'https://w0.peakpx.com/wallpaper/261/829/HD-wallpaper-monkey-d-luffy-portrait-artwork-manga-one-piece.jpg', hawkRating: 16.0, animeCount: 8, followersCount: 2200 },
+    { id: 'bot-1', rank: 1, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 18.0, animeCount: 10, followersCount: 124 },
+    { id: 'bot-2', rank: 2, username: 'KaoriVibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 14.4, animeCount: 9, followersCount: 85 },
+    { id: 'bot-4', rank: 3, username: 'LuffyFan99', avatarUrl: 'https://w0.peakpx.com/wallpaper/261/829/HD-wallpaper-monkey-d-luffy-portrait-artwork-manga-one-piece.jpg', hawkRating: 16.0, animeCount: 8, followersCount: 22 },
 ];
 
 const MOCK_ANIME_FOR_OTHERS: Anime[] = [
@@ -98,7 +98,7 @@ const App: React.FC = () => {
   const [initializing, setInitializing] = useState(true);
   const [animeList, setAnimeList] = useState<Anime[]>([]);
   
-  const [view, setView] = useState<ViewState>('list');
+  const [view, setView] = useState<ViewState>('discover');
   const [activeBottomTab, setActiveBottomTab] = useState<'discover' | 'library'>('discover');
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('ptw');
@@ -108,6 +108,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [showMenu, setShowMenu] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [discoverPrefill, setDiscoverPrefill] = useState<Partial<Anime> | undefined>(undefined);
   const [bookmarkedFriends, setBookmarkedFriends] = useState<FriendUser[]>([]);
   const [viewingProfile, setViewingProfile] = useState<LeaderboardEntry | null>(null);
@@ -170,10 +171,9 @@ const App: React.FC = () => {
 
       if (ns) {
         fetchAnime(ns.user.id);
+        setShowAuth(false);
       } else if (!isBypass) {
         setAnimeList([]);
-        setView('list');
-        setActiveBottomTab('discover');
       }
     });
 
@@ -240,7 +240,7 @@ const App: React.FC = () => {
 
   const handleBack = () => {
     if (history.length === 0) {
-      setView('list');
+      setView('discover');
       setViewingProfile(null);
       return;
     }
@@ -262,6 +262,14 @@ const App: React.FC = () => {
     setHistory(prev => [...prev, { view, activeBottomTab, selectedAnimeId, previewAnime, discoverPrefill, activeTab, viewingProfile }]);
   };
 
+  const requireAuth = (callback: () => void) => {
+    if (!session || session.user.id === PREVIEW_SESSION.user.id) {
+      setShowAuth(true);
+      return;
+    }
+    callback();
+  };
+
   const handleOpenDetail = (anime: any) => {
     pushHistory();
     const existing = animeList.find(a => a.id === String(anime.id));
@@ -278,7 +286,7 @@ const App: React.FC = () => {
   const handleHomeClick = () => {
     setRefreshKey(prev => prev + 1);
     setHistory([]);
-    setView('list');
+    setView('discover');
     setActiveBottomTab('discover');
     setShowMenu(false);
     setSelectedAnimeId(null);
@@ -289,7 +297,7 @@ const App: React.FC = () => {
 
   const handleAdd = async (data: Omit<Anime, 'id'>) => {
     if (!session?.user?.id || session.user.id === PREVIEW_SESSION.user.id) {
-      alert("Login required to add entries.");
+      setShowAuth(true);
       return;
     }
     if (!checkActionLimit()) {
@@ -360,8 +368,6 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (!session) return <Auth />;
-    
     if (view === 'detail') {
       const anime = selectedAnimeId ? animeList.find(a => a.id === selectedAnimeId) : previewAnime;
       if (!anime) return null;
@@ -370,6 +376,7 @@ const App: React.FC = () => {
     if (view === 'add') return <AnimeForm prefillData={discoverPrefill} onSubmit={handleAdd} onCancel={handleBack} />;
     if (view === 'edit') return <AnimeForm initialData={animeList.find(a => a.id === selectedAnimeId)} onSubmit={handleEdit} onCancel={handleBack} />;
     if (view === 'profile') {
+        const isSelf = session && !viewingProfile && session.user.id !== PREVIEW_SESSION.user.id;
         const profileData = viewingProfile ? { 
             username: viewingProfile.username, 
             avatar_url: viewingProfile.avatarUrl, 
@@ -380,15 +387,16 @@ const App: React.FC = () => {
             id: viewingProfile.id,
             last_username_change: (viewingProfile as any).last_username_change
         } : { 
-            username: session.user.user_metadata.username || 'HAWK_MEMBER', 
-            avatar_url: session.user.user_metadata.avatar_url || null,
-            is_private: session.user.user_metadata.is_private || false,
-            id: session.user.id,
-            last_username_change: session.user.user_metadata.last_username_change
+            username: session?.user?.user_metadata?.username || 'HAWK_MEMBER', 
+            avatar_url: session?.user?.user_metadata?.avatar_url || null,
+            is_private: session?.user?.user_metadata?.is_private || false,
+            id: session?.user?.id,
+            last_username_change: session?.user?.user_metadata?.last_username_change
         };
         const isFollowing = viewingProfile ? bookmarkedFriends.some(f => f.id === viewingProfile.id) : false;
 
-        return <ProfileView profile={profileData} animeList={viewingProfile ? MOCK_ANIME_FOR_OTHERS.slice(0, viewingProfile.animeCount) : animeList} onBack={handleBack} isOwnProfile={!viewingProfile} isFollowing={isFollowing} onUpdateProfile={async (data) => {
+        return <ProfileView profile={profileData} animeList={viewingProfile ? MOCK_ANIME_FOR_OTHERS.slice(0, viewingProfile.animeCount) : animeList} onBack={handleBack} isOwnProfile={isSelf} isFollowing={isFollowing} onUpdateProfile={async (data) => {
+            if (!session) return;
             const { error } = await supabase.auth.updateUser({ data });
             if (!error) {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -397,17 +405,19 @@ const App: React.FC = () => {
                 }
             }
         }} onFollow={() => {
-            if (viewingProfile) {
-                const friend: FriendUser = {
-                    id: viewingProfile.id,
-                    username: viewingProfile.username,
-                    avatarUrl: viewingProfile.avatarUrl,
-                    status: 'Online',
-                    hawkRating: viewingProfile.hawkRating,
-                    isPrivate: viewingProfile.isPrivate
-                };
-                setBookmarkedFriends(prev => prev.some(f => f.id === friend.id) ? prev.filter(f => f.id !== friend.id) : [...prev, friend]);
-            }
+            requireAuth(() => {
+                if (viewingProfile) {
+                    const friend: FriendUser = {
+                        id: viewingProfile.id,
+                        username: viewingProfile.username,
+                        avatarUrl: viewingProfile.avatarUrl,
+                        status: 'Online',
+                        hawkRating: viewingProfile.hawkRating,
+                        isPrivate: viewingProfile.isPrivate
+                    };
+                    setBookmarkedFriends(prev => prev.some(f => f.id === friend.id) ? prev.filter(f => f.id !== friend.id) : [...prev, friend]);
+                }
+            });
         }} onAnimeClick={(id) => { const list = viewingProfile ? MOCK_ANIME_FOR_OTHERS : animeList; const a = list.find(x => x.id === id); if (a) handleOpenDetail(a); }} />;
     }
     if (view === 'leaderboard') return <LeaderboardView entries={MOCK_LEADERBOARD} onBack={handleBack} onUserClick={(id) => { 
@@ -417,7 +427,7 @@ const App: React.FC = () => {
             setViewingProfile(u); 
             setView('profile'); 
         } 
-    }} currentUser={{ username: session.user.user_metadata.username, avatarUrl: session.user.user_metadata.avatar_url, hawkRating: 0, animeCount: animeList.length, followersCount: 0 }} />;
+    }} currentUser={session ? { username: session.user.user_metadata.username, avatarUrl: session.user.user_metadata.avatar_url, hawkRating: 0, animeCount: animeList.length, followersCount: 0 } : undefined} />;
     if (view === 'friends') return <FriendsView onBack={handleBack} bookmarkedFriends={bookmarkedFriends} onToggleBookmark={(u) => setBookmarkedFriends(prev => prev.some(f => f.id === u.id) ? prev.filter(f => f.id !== u.id) : [...prev, u])} onUserClick={(id) => { 
         const u = [...MOCK_LEADERBOARD, ...PREVIEW_BOTS].find(x => x.id === id);
         if (u) {
@@ -486,7 +496,7 @@ const App: React.FC = () => {
               className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#1e2039] hover:bg-blue-600 text-white rounded-full font-black uppercase tracking-[0.2em] text-[10px] transition-all transform active:scale-95 shadow-xl w-full sm:w-auto"
             >
               <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.078.078 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
               </svg>
               <span className="leading-none">DISCORD SERVER</span>
             </a>
@@ -497,7 +507,7 @@ const App: React.FC = () => {
       </div>
     );
     
-    if (activeBottomTab === 'discover') return <DiscoverView onAdd={(d) => { setDiscoverPrefill(d); pushHistory(); setView('add'); }} onPreview={handleOpenDetail} onMenuOpen={() => setShowMenu(true)} userAvatar={session.user.user_metadata.avatar_url} onHomeClick={handleHomeClick} refreshKey={refreshKey} dbTotalCount={dbTotalCount} />;
+    if (activeBottomTab === 'discover') return <DiscoverView onAdd={(d) => requireAuth(() => { setDiscoverPrefill(d); pushHistory(); setView('add'); })} onPreview={handleOpenDetail} onMenuOpen={() => setShowMenu(true)} userAvatar={session?.user?.user_metadata?.avatar_url} onHomeClick={handleHomeClick} refreshKey={refreshKey} dbTotalCount={dbTotalCount} />;
     
     return (
       <div className="bg-hawk-base min-h-screen pb-24 animate-fade-in">
@@ -513,7 +523,7 @@ const App: React.FC = () => {
                     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_8px_rgba(255,163,26,0.15)]">
                        <defs><clipPath id="avatarClipLib"><path d="M 15 35 L 55 15 L 95 45 L 65 55 L 55 85 L 35 60 L 10 50 Z" /></clipPath></defs>
                        <path d="M 15 35 L 55 15 L 95 45 L 65 55 L 55 85 L 35 60 L 10 50 Z" className="fill-hawk-ui stroke-hawk-goldDim/50 group-hover:stroke-hawk-gold transition-all duration-300" strokeWidth="5"/>
-                       {session.user.user_metadata.avatar_url ? (
+                       {session?.user?.user_metadata?.avatar_url ? (
                          <image href={session.user.user_metadata.avatar_url} width="100" height="100" preserveAspectRatio="xMidYMid slice" clipPath="url(#avatarClipLib)" />
                        ) : (
                          <g clipPath="url(#avatarClipLib)"><rect width="100" height="100" fill="#151515"/><path d="M50 45a15 15 0 100-30 15 15 0 000 30zm0 10c-20 0-35 15-35 15v5h70v-5s-15-15-35-15z" fill="#505050"/></g>
@@ -592,7 +602,7 @@ const App: React.FC = () => {
         </div>
         <div className="p-4 grid gap-4"> {filteredAnime.map(a => <AnimeCard key={a.id} anime={a} onClick={() => handleOpenDetail(a)} />)} </div>
         {session && session.user.id !== PREVIEW_SESSION.user.id && (
-          <button onClick={() => { pushHistory(); setView('add'); }} className="fixed bottom-24 right-6 w-14 h-14 bg-hawk-gold rounded-full flex items-center justify-center text-black shadow-xl z-50"><Plus className="w-8 h-8" /></button>
+          <button onClick={() => requireAuth(() => { pushHistory(); setView('add'); })} className="fixed bottom-24 right-6 w-14 h-14 bg-hawk-gold rounded-full flex items-center justify-center text-black shadow-xl z-50"><Plus className="w-8 h-8" /></button>
         )}
       </div>
     );
@@ -609,6 +619,11 @@ const App: React.FC = () => {
 
   return (
     <>
+      {showAuth && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+           <Auth onBack={() => setShowAuth(false)} />
+        </div>
+      )}
       {showMenu && (
           <div className="fixed inset-0 z-[100] flex justify-end">
               <div className="absolute inset-0 bg-black/80" onClick={() => setShowMenu(false)} />
@@ -619,23 +634,27 @@ const App: React.FC = () => {
                       ) : (
                         <div className="w-12 h-12 rounded-full border border-hawk-gold bg-hawk-ui flex items-center justify-center"><User className="w-6 h-6 text-hawk-textMuted" /></div>
                       )}
-                      <div className="font-bold text-white uppercase truncate">{session?.user?.user_metadata?.username || 'HAWK_USER'}</div>
+                      <div className="font-bold text-white uppercase truncate">{session?.user?.user_metadata?.username || 'GUEST_USER'}</div>
                   </div>
                   <button onClick={() => { setShowMenu(false); pushHistory(); setView('profile'); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><User className="w-4 h-4" /> Profile</button>
-                  <button onClick={() => { setShowMenu(false); pushHistory(); setView('friends'); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><Users className="w-4 h-4" /> Find People</button>
+                  <button onClick={() => { setShowMenu(false); requireAuth(() => { pushHistory(); setView('friends'); }); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><Users className="w-4 h-4" /> Find People</button>
                   <button onClick={() => { setShowMenu(false); pushHistory(); setView('leaderboard'); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><Trophy className="w-4 h-4" /> Leaderboard</button>
-                  <button onClick={() => { setShowMenu(false); pushHistory(); setView('mal_import'); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><ArrowDownToLine className="w-4 h-4" /> Import/Export</button>
+                  <button onClick={() => { setShowMenu(false); requireAuth(() => { pushHistory(); setView('mal_import'); }); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><ArrowDownToLine className="w-4 h-4" /> Import/Export</button>
                   <button onClick={() => { setShowMenu(false); pushHistory(); setView('faq'); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><HelpCircle className="w-4 h-4" /> FAQs</button>
                   <button onClick={() => { setShowMenu(false); pushHistory(); setView('about'); }} className="text-left py-2 text-hawk-textSecondary hover:text-hawk-gold flex items-center gap-3 transition-colors"><Info className="w-4 h-4" /> About Us</button>
                   <div className="flex-grow" />
-                  <button onClick={() => { localStorage.removeItem('hawk_debug_bypass'); supabase.auth.signOut(); }} className="text-left py-2 text-red-500 flex items-center gap-3 hover:opacity-70 transition-all"><LogOut className="w-4 h-4" /> Sign Out</button>
+                  {session && session.user.id !== PREVIEW_SESSION.user.id ? (
+                    <button onClick={() => { localStorage.removeItem('hawk_debug_bypass'); supabase.auth.signOut(); }} className="text-left py-2 text-red-500 flex items-center gap-3 hover:opacity-70 transition-all"><LogOut className="w-4 h-4" /> Sign Out</button>
+                  ) : (
+                    <button onClick={() => { setShowMenu(false); setShowAuth(true); }} className="text-left py-2 text-hawk-gold flex items-center gap-3 hover:opacity-70 transition-all"><User className="w-4 h-4" /> Sign In</button>
+                  )}
               </div>
           </div>
       )}
       <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader className="w-6 h-6 text-hawk-gold animate-spin" /></div>}>
         {renderContent()}
       </Suspense>
-      {session && (view === 'list' || activeBottomTab === 'discover') && (
+      {(view === 'list' || view === 'discover' || view === 'profile') && (
           <div className="fixed bottom-0 left-0 right-0 bg-hawk-surface/90 backdrop-blur-xl border-t border-hawk-ui p-4 flex justify-around items-center z-40">
               <button onClick={handleHomeClick} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeBottomTab === 'discover' ? 'text-hawk-gold scale-110' : 'text-hawk-textMuted opacity-60 hover:opacity-100'}`}>
                   <div className="relative">
@@ -646,7 +665,7 @@ const App: React.FC = () => {
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-[0.1em]">Discover</span>
               </button>
-              <button onClick={() => { setActiveBottomTab('library'); setView('list'); }} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeBottomTab === 'library' ? 'text-hawk-gold scale-110' : 'text-hawk-textMuted opacity-60 hover:opacity-100'}`}>
+              <button onClick={() => requireAuth(() => { setActiveBottomTab('library'); setView('list'); })} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeBottomTab === 'library' ? 'text-hawk-gold scale-110' : 'text-hawk-textMuted opacity-60 hover:opacity-100'}`}>
                   <div className="relative">
                       <LayoutGrid className="w-6 h-6" />
                       <div className="absolute -top-3 -right-4 bg-hawk-gold text-black text-[9px] font-black px-1.5 py-0.5 rounded-full border border-black shadow-lg">

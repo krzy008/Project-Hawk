@@ -41,7 +41,12 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({ anime 
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || '00000000-0000-0000-0000-000000000000';
+      const userId = session?.user?.id;
+      
+      const isGuest = !userId || userId === '00000000-0000-0000-0000-000000000000';
+      if (isGuest) {
+        throw new Error("Login required to save entry");
+      }
 
       let animeId: number;
       if (typeof anime.id === 'number') {
@@ -77,7 +82,13 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({ anime 
       setIsOpen(false);
     } catch (err: any) {
       console.error('HAWK Modal Save Detail Error:', err);
-      setErrorMsg(err.message || 'Connection failed - check column schema');
+      const msg = err.message || 'Connection failed - check column schema';
+      setErrorMsg(msg);
+      
+      if (msg.includes("Login required")) {
+        window.dispatchEvent(new CustomEvent('hawk_auth_required'));
+        setIsOpen(false);
+      }
     } finally {
       setLoading(false);
     }
