@@ -1,0 +1,21 @@
+{
+  "name": "HAWK Anime Watchlist",
+  "short_name": "HAWK",
+  "description": "Premium Anime Watchlist Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FFA31A",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/9.x/lorelei/svg?seed=HAWK&backgroundColor=111111",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "https://api.dicebear.com/9.x/lorelei/svg?seed=HAWK&backgroundColor=111111",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

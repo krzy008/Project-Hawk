@@ -1,11 +1,29 @@
-<div align="center">
+# HAWK - Premium Anime Watchlist
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+A high-end, dark-themed anime tracking application built with React, Tailwind CSS, and Supabase.
 
-  <h1>Built with AI Studio</h2>
+## Features
+- **Guest Mode**: Try the app instantly without an account.
+- **Discover**: Real-time anime search and trending data via AniList & Jikan APIs.
+- **Library**: Track your progress with a beautiful, antique gold & black UI.
+- **Rich Details**: View trailers, relations, and similar anime recommendations.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Local Setup
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-</div>
+2. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for Production**
+   ```bash
+   npm run build
+   ```
+
+## Note on Supabase
+The project currently uses a pre-configured Supabase instance for previewing. To use your own database, update the credentials in `lib/supabase.ts`.
