@@ -106,23 +106,25 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryI
           </div>
         </div>
 
-        {/* Action Overlay - FIXED Visibility */}
+        {/* Action Overlay - ALWAYS VISIBLE in Library */}
         <div className="absolute top-2 right-2 z-20 flex gap-2">
           {isLibraryItem ? (
-            <>
+            <div className="flex gap-2">
                <button 
                   onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
+                  title="Delete Entry"
                   className="w-8 h-8 bg-hawk-ui border border-red-500/30 text-red-500 rounded-lg flex items-center justify-center shadow-xl transition-all hover:bg-red-500 hover:text-white active:scale-90"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+                  title="Edit Entry"
                   className="w-8 h-8 bg-hawk-gold text-black rounded-lg flex items-center justify-center shadow-xl transition-all hover:bg-white active:scale-90"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
-            </>
+            </div>
           ) : (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-90 origin-top-right">
               <QuickAddButton anime={externalAnimeData} />

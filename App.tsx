@@ -36,11 +36,16 @@ const mapFromDb = (row: any): Anime => ({
 const sanitize = (val: string) => (val || '').replace(/[<>]/g, '').trim();
 
 // FIXED: Improved ID generation to prevent collisions for manual entries
+// It now hashes the title if no numeric ID is provided, ensuring different shows get different IDs
 const mapToDb = (anime: Partial<Anime>, userId: string) => {
     const idStr = String(anime.id || '');
-    const numericId = /^\d+$/.test(idStr) 
+    const titleStr = anime.title || '';
+    
+    // If we have a numeric ID (from AniList/Jikan), use it. 
+    // Otherwise, generate a hash from the title to ensure uniqueness per show.
+    const numericId = /^\d+$/.test(idStr) && idStr !== ''
         ? Number(idStr) 
-        : Math.abs(idStr.split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0));
+        : Math.abs((idStr + titleStr).split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0));
 
     return {
         user_id: userId,
@@ -343,6 +348,7 @@ const App: React.FC = () => {
         }
         fetchAnime(session.user.id);
         if (view === 'detail') setView('list');
+        setSelectedAnimeId(null);
     }
   };
 
@@ -413,7 +419,9 @@ const App: React.FC = () => {
       <div className="bg-hawk-base min-h-screen pb-24 animate-fade-in">
         <div className="sticky top-0 z-40 bg-hawk-surface/95 backdrop-blur-xl border-b border-hawk-ui transition-all">
           <div className="flex items-center justify-between h-16 px-6 relative">
-             <button onClick={handleHomeClick} className="w-10 h-10 shrink-0 flex items-center justify-center hover:scale-105 transition-transform"><Logo /></button>
+             <button onClick={handleHomeClick} className="w-10 h-10 shrink-0 flex items-center justify-center hover:scale-105 transition-transform cursor-pointer relative group">
+                <Logo />
+             </button>
              <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
                 <h1 className="text-sm font-bold uppercase tracking-[0.4em] text-hawk-gold">H A W K</h1>
                 <span className="text-[8px] font-bold text-hawk-textMuted uppercase tracking-[0.2em]">Anime Watchlist Tracker</span>
@@ -461,7 +469,16 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="p-4 grid gap-4"> 
-          {filteredAnime.map(a => <AnimeCard key={a.id} anime={a} onClick={() => handleOpenDetail(a)} isLibraryItem={true} onDelete={() => handleDelete(a.id)} onEdit={() => { setSelectedAnimeId(a.id); pushHistory(); setView('edit'); }} />)} 
+          {filteredAnime.map(a => (
+            <AnimeCard 
+              key={a.id} 
+              anime={a} 
+              onClick={() => handleOpenDetail(a)} 
+              isLibraryItem={true} 
+              onDelete={() => handleDelete(a.id)} 
+              onEdit={() => { setSelectedAnimeId(a.id); pushHistory(); setView('edit'); }} 
+            />
+          ))} 
         </div>
         {session && session.user.id !== PREVIEW_SESSION.user.id && <button onClick={() => requireAuth(() => { pushHistory(); setView('add'); })} className="fixed bottom-24 right-6 w-14 h-14 bg-hawk-gold rounded-full flex items-center justify-center text-black shadow-xl z-50"><Plus className="w-8 h-8" /></button>}
       </div>
