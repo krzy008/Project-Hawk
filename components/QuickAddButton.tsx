@@ -13,60 +13,24 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const checkRateLimit = () => {
-    const now = Date.now();
-    const historyStr = localStorage.getItem('hawk_qa_limit');
-    const history: number[] = historyStr ? JSON.parse(historyStr) : [];
-    const oneMinuteAgo = now - 60000;
-    const recentActions = history.filter(ts => ts > oneMinuteAgo);
-    
-    if (recentActions.length >= 5) return false;
-    
-    recentActions.push(now);
-    localStorage.setItem('hawk_qa_limit', JSON.stringify(recentActions));
-    return true;
-  };
-
   const handleQuickAdd = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (status === 'loading') return;
-
-    if (!checkRateLimit()) {
-      setErrorMsg("Too many actions — wait a moment");
-      setStatus('error');
-      setTimeout(() => { setStatus('idle'); setErrorMsg(null); }, 3000);
-      return;
-    }
-
     setStatus('loading');
     setErrorMsg(null);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       const userId = session?.user?.id;
-      const isGuest = !userId || userId === '00000000-0000-0000-0000-000000000000';
-      
-      if (isGuest) {
-        throw new Error("Login required to save progress");
-      }
+      if (!userId || userId === '00000000-0000-0000-0000-000000000000') throw new Error("Login required");
 
-      let animeId: number;
-      if (typeof anime.id === 'number') {
-        animeId = anime.id;
-      } else {
-        const parsed = parseInt(String(anime.id).replace(/\D/g, ''));
-        animeId = isNaN(parsed) ? Math.abs(anime.title.split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0)) : parsed;
-      }
-
-      // Input Sanitization
-      const cleanTitle = anime.title.replace(/[<>]/g, '').slice(0, 200);
+      let animeId = typeof anime.id === 'number' ? anime.id : parseInt(String(anime.id).replace(/\D/g, ''));
+      if (isNaN(animeId)) animeId = Math.abs(anime.title.split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0));
 
       const payload = {
         user_id: userId,
         anime_id: animeId,
-        mal_id: anime.idMal ? Number(anime.idMal) : null,
-        title: cleanTitle,
+        title: anime.title.replace(/[<>]/g, '').slice(0, 200),
         cover_image: anime.coverImage,
         status: 'Plan to Watch',
         progress: 0,
@@ -78,65 +42,26 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
         duration: anime.duration || 24
       };
 
-      const { error } = await supabase
-        .from('watchlist')
-        .upsert(payload, { onConflict: 'user_id,anime_id' });
-
+      const { error } = await supabase.from('watchlist').upsert(payload, { onConflict: 'user_id,anime_id' });
       if (error) throw error;
       
       setStatus('success');
       window.dispatchEvent(new CustomEvent('watchlist_updated'));
       setTimeout(() => setStatus('idle'), 2000);
     } catch (err: any) {
-      console.error('HAWK QuickAdd Connection Error:', err);
-      
-      let friendlyError = err.message || 'Connection failed';
-      if (friendlyError.includes('ON CONFLICT')) {
-          friendlyError = "DB Fix Required: Run the UNIQUE SQL script in Supabase Editor.";
-      }
-      
-      setErrorMsg(friendlyError);
+      setErrorMsg(err.message || 'Error');
       setStatus('error');
-      setTimeout(() => { setStatus('idle'); setErrorMsg(null); }, 5000);
-      
-      if (err.message.includes("Login required")) {
-        window.dispatchEvent(new CustomEvent('hawk_auth_required'));
-      }
+      setTimeout(() => setStatus('idle'), 5000);
     }
   };
 
   return (
     <div className={`relative flex flex-col w-full ${className}`}>
-      <button
-        onClick={handleQuickAdd}
-        disabled={status === 'loading'}
-        className={`w-full h-[48px] flex items-center justify-center gap-2 px-6 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all duration-300 active:scale-95 shadow-lg border-none ${
-          status === 'success' 
-            ? 'bg-emerald-500 text-white' 
-            : status === 'error'
-            ? 'bg-red-500 text-white'
-            : 'bg-[#FFD60A] text-black hover:bg-[#FFE047]'
-        }`}
-      >
-        {status === 'loading' ? (
-          <Loader className="w-4 h-4 animate-spin" />
-        ) : status === 'success' ? (
-          <Check className="w-4 h-4" />
-        ) : (
-          <Plus className="w-4 h-4 stroke-[3]" />
-        )}
+      <button onClick={handleQuickAdd} disabled={status === 'loading'} className={`w-full h-[48px] flex items-center justify-center gap-2 px-6 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all duration-300 active:scale-95 shadow-lg border-none ${status === 'success' ? 'bg-emerald-500 text-white' : status === 'error' ? 'bg-red-500 text-white' : 'bg-[#FFD60A] text-black hover:bg-[#FFE047]'}`}>
+        {status === 'loading' ? <Loader className="w-4 h-4 animate-spin" /> : status === 'success' ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4 stroke-[3]" />}
         <span>{status === 'success' ? 'ADDED' : 'QUICK ADD'}</span>
       </button>
-      
-      {errorMsg && (
-        <div className="absolute top-full left-0 right-0 mt-2 flex flex-col items-center justify-center gap-1 text-[8px] font-black text-red-400 uppercase tracking-tighter bg-black/95 px-3 py-2 rounded-lg border border-red-500/20 z-[110] shadow-2xl animate-fade-in text-center">
-          <div className="flex items-center gap-1">
-            <AlertCircle className="w-2.5 h-2.5" />
-            <span>ERROR DETECTED</span>
-          </div>
-          <div className="opacity-80 mt-0.5 leading-tight">{errorMsg}</div>
-        </div>
-      )}
+      {errorMsg && <div className="absolute top-full left-0 right-0 mt-2 flex flex-col items-center justify-center gap-1 text-[8px] font-black text-red-400 uppercase tracking-tighter bg-black/95 px-3 py-2 rounded-lg border border-red-500/20 z-[110] shadow-2xl animate-fade-in text-center"><div className="flex items-center gap-1"><AlertCircle className="w-2.5 h-2.5" /><span>ERROR</span></div><div className="opacity-80 mt-0.5 leading-tight">{errorMsg}</div></div>}
     </div>
   );
 };

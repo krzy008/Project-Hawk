@@ -336,6 +336,12 @@ export const api = {
     }
   },
 
+  // Added formatCount to support numeric formatting in App.tsx and other views
+  formatCount(num: number): string {
+    if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
+    return num.toString();
+  },
+
   async fetchJikanEpisodes(malId: number): Promise<number | null> {
     const cacheKey = `jikan_eps_${malId}`;
     const cached = getCached(cacheKey);
