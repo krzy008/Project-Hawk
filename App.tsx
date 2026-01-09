@@ -75,11 +75,6 @@ const MOCK_ANIME_FOR_OTHERS: Anime[] = [
     { id: 'mock-3', title: 'Attack on Titan', status: AnimeStatus.Finished, watched: 25, total: 25, rating: 10, season: 'Spring 2013', notes: 'Shinzou wo Sasageyo!', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx16498-73peTReV9i9v.jpg', genres: ['Action', 'Drama', 'Fantasy'], duration: 24 },
     { id: 'mock-4', title: 'Fullmetal Alchemist: Brotherhood', status: AnimeStatus.Finished, watched: 64, total: 64, rating: 10, season: 'Spring 2009', notes: 'Equivalent exchange.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx5114-6F399N7zMof9.jpg', genres: ['Action', 'Adventure', 'Drama', 'Fantasy'], duration: 24 },
     { id: 'mock-5', title: 'Your Name.', status: AnimeStatus.Finished, watched: 1, total: 1, rating: 9, season: 'Summer 2016', notes: 'Beautiful animation.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21519-79mWEalA67YF.jpg', genres: ['Romance', 'Drama', 'Supernatural'], duration: 107 },
-    { id: 'mock-6', title: 'Demon Slayer', status: AnimeStatus.Watching, watched: 12, total: 26, rating: 8, season: 'Spring 2019', notes: 'Ufotable carrying.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx101922-WBsBl0Clmg9d.jpg', genres: ['Action', 'Adventure', 'Supernatural'], duration: 23 },
-    { id: 'mock-7', title: 'Jujutsu Kaisen', status: AnimeStatus.Finished, watched: 24, total: 24, rating: 9, season: 'Fall 2020', notes: 'Domain Expansion.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx113415-bbBWj4PByu12.jpg', genres: ['Action', 'Supernatural'], duration: 23 },
-    { id: 'mock-8', title: 'Cyberpunk: Edgerunners', status: AnimeStatus.Finished, watched: 10, total: 10, rating: 10, season: 'Fall 2022', notes: 'I want to stay at your house.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx120547-066GzXW0R8zS.jpg', genres: ['Action', 'Sci-Fi'], duration: 25 },
-    { id: 'mock-9', title: 'Steins;Gate', status: AnimeStatus.Finished, watched: 24, total: 24, rating: 10, season: 'Spring 2011', notes: 'El Psyc Kongroo.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx9253-764972.jpg', genres: ['Sci-Fi', 'Thriller'], duration: 24 },
-    { id: 'mock-10', title: 'Monster', status: AnimeStatus.Watching, watched: 40, total: 74, rating: 9, season: 'Spring 2004', notes: 'Johan is the best antagonist.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx19-Y9vB7VzRhkWn.jpg', genres: ['Drama', 'Mystery', 'Psychological', 'Thriller'], duration: 24 },
 ];
 
 const PREVIEW_SESSION = {
@@ -620,8 +615,13 @@ const App: React.FC = () => {
   return (
     <>
       {showAuth && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-           <Auth onBack={() => setShowAuth(false)} />
+        <div 
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
+          onClick={() => setShowAuth(false)}
+        >
+           <div onClick={(e) => e.stopPropagation()}>
+             <Auth onBack={() => setShowAuth(false)} />
+           </div>
         </div>
       )}
       {showMenu && (

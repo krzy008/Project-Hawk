@@ -49,7 +49,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
     const [selectedStatus, setSelectedStatus] = useState<AnimeStatus | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     
-    // Edit Form State
     const [editUsername, setEditUsername] = useState(profile.username);
     const [editAvatarUrl, setEditAvatarUrl] = useState(profile.avatar_url);
     const [editIsPrivate, setEditIsPrivate] = useState(profile.is_private || false);
@@ -112,11 +111,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
     const displayFollowers = profile.followersCount ?? 0;
     const displayAnimeCount = profile.animeCount ?? animeList.length;
 
-    const filteredEntries = useMemo(() => {
-        if (!selectedStatus) return [];
-        return animeList.filter(a => a.status === selectedStatus);
-    }, [animeList, selectedStatus]);
-
     const rankInfo = useMemo(() => {
         if (displayRating >= 1000) return { tag: 'HAWK CERTIFIED', color: 'text-red-500', glow: 'drop-shadow-[0_0_12px_rgba(239,68,68,0.7)]', tickColor: 'text-red-500' };
         if (displayRating >= 600) return { tag: 'ELITE', color: 'text-yellow-400', glow: 'drop-shadow-[0_0_12px_rgba(251,191,36,0.7)]', tickColor: 'text-yellow-400' };
@@ -124,22 +118,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
         return { tag: 'NEWBIE', color: 'text-gray-500', glow: '', tickColor: 'text-gray-500' };
     }, [displayRating]);
 
-    const canChangeUsername = useMemo(() => {
-        if (!profile.last_username_change) return true;
-        const lastChange = new Date(profile.last_username_change).getTime();
-        const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-        return lastChange < oneMonthAgo;
-    }, [profile.last_username_change]);
-
     const handleSaveProfile = async () => {
         const cleanName = sanitize(editUsername);
         if (!validateUsername(cleanName)) {
-            alert("Username must be 2-16 characters and only contain letters, numbers, and underscore (_).");
-            return;
-        }
-
-        if (cleanName !== profile.username && !canChangeUsername) {
-            alert("Username changes can only be made once in a month.");
+            alert("Username must be 2-16 chars (letters, numbers, underscore).");
             return;
         }
 
@@ -160,72 +142,70 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
     const handleShare = () => {
         const profileUrl = `${window.location.origin}/profile/${profile.username}`;
         navigator.clipboard.writeText(profileUrl).then(() => {
-            alert('Profile link copied to clipboard!');
-        }).catch(() => {
-            alert('Profile link: ' + profileUrl);
+            alert('Profile link copied!');
         });
     };
 
     const StatusCard = ({ status, label, icon: Icon, color }: { status: AnimeStatus, label: string, icon: any, color: string }) => {
         const count = calculatedStats.counts[status];
         const isActive = selectedStatus === status;
+        const filteredEntries = animeList.filter(a => a.status === status);
         
         return (
-            <div className="space-y-4">
+            <div className="space-y-3 transition-all duration-500 ease-in-out">
                 <button 
                     onClick={() => setSelectedStatus(isActive ? null : status)}
-                    className={`w-full flex items-center justify-between p-5 bg-hawk-ui/40 border rounded-[28px] transition-all duration-300 group ${
+                    className={`w-full flex items-center justify-between p-4 bg-hawk-ui/40 border rounded-[20px] transition-all duration-300 group ${
                         isActive ? 'border-hawk-gold bg-hawk-gold/5' : 'border-hawk-ui/60 hover:border-hawk-gold/30'
                     }`}
                 >
-                    <div className="flex items-center gap-5">
-                        <div className={`p-3 rounded-xl bg-hawk-base/60 shadow-inner ${isActive ? 'text-hawk-gold' : color}`}>
-                            <Icon className="w-5 h-5" strokeWidth={2.5} />
+                    <div className="flex items-center gap-4">
+                        <div className={`p-2.5 rounded-xl bg-hawk-base/60 shadow-inner ${isActive ? 'text-hawk-gold' : color}`}>
+                            <Icon className="w-4 h-4" strokeWidth={2.5} />
                         </div>
-                        <span className={`text-xs font-black uppercase tracking-[0.2em] transition-colors ${isActive ? 'text-hawk-gold' : 'text-white'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.25em] transition-colors ${isActive ? 'text-hawk-gold' : 'text-white'}`}>
                             {label}
                         </span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <span className={`text-xl font-black font-mono ${isActive ? 'text-hawk-gold' : 'text-white'}`}>{count}</span>
-                        <ChevronDown className={`w-5 h-5 text-hawk-textMuted group-hover:text-hawk-gold transition-all duration-300 ${isActive ? 'rotate-180 text-hawk-gold' : ''}`} />
+                    <div className="flex items-center gap-3">
+                        <span className={`text-lg font-black font-mono leading-none ${isActive ? 'text-hawk-gold' : 'text-white'}`}>{count}</span>
+                        <ChevronDown className={`w-4 h-4 text-hawk-textMuted group-hover:text-hawk-gold transition-all duration-300 ${isActive ? 'rotate-180 text-hawk-gold' : ''}`} />
                     </div>
                 </button>
                 
-                {isActive && (
-                    <div className="grid gap-3 px-1 animate-slide-up">
-                        {filteredEntries.length === 0 ? (
-                            <div className="py-8 text-center border border-dashed border-hawk-ui rounded-[28px] opacity-40">
-                                <p className="text-[10px] font-bold uppercase tracking-widest italic">No entries in this sector</p>
-                            </div>
-                        ) : (
-                            filteredEntries.map(anime => (
+                <div className={`grid gap-3 px-0.5 overflow-hidden transition-all duration-500 ease-in-out ${isActive ? 'max-h-[2000px] opacity-100 mt-2' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+                    {filteredEntries.length === 0 ? (
+                        <div className="py-8 text-center border border-dashed border-hawk-ui rounded-[20px] opacity-30">
+                            <p className="text-[9px] font-bold uppercase tracking-widest italic">Sector Empty</p>
+                        </div>
+                    ) : (
+                        filteredEntries.map(anime => (
+                            <div key={anime.id} className="animate-slide-up transform-gpu">
                                 <AnimeCard 
-                                    key={anime.id} 
                                     anime={anime} 
                                     onClick={() => onAnimeClick?.(anime.id)} 
                                 />
-                            ))
-                        )}
-                    </div>
-                )}
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         );
     };
 
     return (
-        <div className="min-h-screen bg-hawk-base pb-24 font-sans text-white relative overflow-x-hidden">
-            <div className="sticky top-0 z-40 bg-hawk-surface/90 backdrop-blur-md border-b border-hawk-gold/20 p-4 flex items-center justify-between">
-                <button onClick={onBack} className="p-2 text-hawk-textSecondary hover:text-white transition-colors">
+        <div className="min-h-screen bg-hawk-base pb-32 font-sans text-white relative overflow-x-hidden">
+            <div className="sticky top-0 z-40 bg-hawk-surface/90 backdrop-blur-xl border-b border-hawk-gold/20 p-4 flex items-center justify-between">
+                <button onClick={onBack} className="p-2 text-hawk-textSecondary hover:text-white transition-colors active:scale-90">
                     <ChevronLeft className="w-6 h-6" />
                 </button>
-                <h1 className="text-sm font-bold text-hawk-gold uppercase tracking-[0.2em]">Profile</h1>
-                <div className="flex items-center">
-                    <button onClick={handleShare} className="p-2 text-hawk-gold hover:text-white transition-colors">
+                <h1 className="text-[10px] font-black text-hawk-gold uppercase tracking-[0.4em] italic">Profile</h1>
+                <div className="flex items-center gap-1">
+                    <button onClick={handleShare} className="p-2 text-hawk-gold hover:text-white transition-colors active:scale-90">
                         <Share2 className="w-5 h-5" />
                     </button>
                     {isOwnProfile && (
-                        <button onClick={() => setIsEditing(true)} className="p-2 text-hawk-gold hover:text-white transition-colors">
+                        <button onClick={() => setIsEditing(true)} className="p-2 text-hawk-gold hover:text-white transition-colors active:scale-90">
                             <Edit3 className="w-5 h-5" />
                         </button>
                     )}
@@ -233,82 +213,49 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
             </div>
 
             <div className="p-6 flex flex-col items-center">
-                <div className="w-32 h-32 rounded-full border-4 border-hawk-gold p-1 shadow-[0_0_25px_rgba(255,163,26,0.3)] bg-hawk-surface overflow-hidden mb-8 relative">
+                <div className="w-28 h-28 rounded-full border-2 border-hawk-gold p-1.5 shadow-[0_0_20px_rgba(255,163,26,0.2)] bg-hawk-surface overflow-hidden mb-6 relative group transition-all duration-500 hover:scale-105">
                     <img 
                         src={profile.avatar_url || DEFAULT_AVATAR_PLACEHOLDER} 
                         alt={profile.username} 
-                        className="w-full h-full rounded-full object-cover" 
+                        className="w-full h-full rounded-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all" 
                         referrerPolicy="no-referrer"
                     />
                 </div>
 
-                <div className="text-center mb-10 w-full flex flex-col items-center">
-                    <h2 className={`text-2xl font-black italic uppercase tracking-wider mb-1 flex items-center justify-center gap-3 ${rankInfo.glow}`}>
+                <div className="text-center mb-8 w-full flex flex-col items-center">
+                    <h2 className={`text-xl font-black italic uppercase tracking-widest mb-1 flex items-center justify-center gap-2 ${rankInfo.glow}`}>
                         {profile.username}
-                        {rankInfo.tag !== 'NEWBIE' && <BadgeCheck className={`w-6 h-6 ${rankInfo.tickColor}`} />}
-                        {profile.is_private && <Lock className="w-4 h-4 text-hawk-textMuted" />}
+                        {rankInfo.tag !== 'NEWBIE' && <BadgeCheck className={`w-5 h-5 ${rankInfo.tickColor}`} />}
+                        {profile.is_private && <Lock className="w-3.5 h-3.5 text-hawk-textMuted" />}
                     </h2>
-                    <div className={`text-[10px] uppercase tracking-widest font-bold ${rankInfo.color} text-center`}>
+                    <div className={`text-[8px] uppercase tracking-[0.4em] font-black ${rankInfo.color} text-center`}>
                         {rankInfo.tag}
                     </div>
                 </div>
 
-                <div className="w-full max-w-sm space-y-6 mb-12">
-                    <div className="bg-hawk-ui/20 border border-hawk-ui rounded-[32px] p-6 shadow-2xl">
-                        <div className="grid grid-cols-3">
-                            <div className="flex flex-col items-center border-r border-hawk-ui/40">
-                                <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-hawk-gold font-black text-2xl font-mono leading-none">{displayRating}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
-                                    <Trophy className="w-3 h-3 shrink-0" /> HAWK PTS
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center border-r border-hawk-ui/40">
-                                <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-white font-black text-2xl font-mono leading-none">{displayFollowers}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
-                                    <Users className="w-3 h-3 shrink-0" /> CIRCLE
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-hawk-gold font-black text-2xl font-mono leading-none">{calculatedStats.meanScore}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
-                                    <Star className="w-3 h-3 shrink-0" /> MEAN
-                                </div>
-                            </div>
+                <div className="w-full max-w-sm grid grid-cols-2 gap-4 mb-8">
+                    <div className="bg-hawk-ui/20 border border-hawk-ui/60 rounded-[24px] p-5 shadow-xl flex flex-col items-center">
+                        <div className="text-hawk-gold font-black text-2xl font-mono leading-none mb-2">{displayRating}</div>
+                        <div className="flex items-center gap-1.5 text-[8px] text-hawk-textMuted uppercase font-black tracking-[0.2em]">
+                            <Trophy className="w-3 h-3" /> Hawk Pts
                         </div>
                     </div>
-
-                    <div className="bg-hawk-ui/20 border border-hawk-ui rounded-[32px] p-6 shadow-2xl">
-                        <div className="grid grid-cols-3">
-                            <div className="flex flex-col items-center border-r border-hawk-ui/40">
-                                <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-white font-black text-xl font-mono leading-none whitespace-nowrap">{calculatedStats.watchTimeStr}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
-                                    <Timer className="w-3 h-3 shrink-0" /> WATCH
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center border-r border-hawk-ui/40">
-                                <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-white font-black text-[10px] uppercase tracking-widest leading-none truncate w-full text-center px-1">{calculatedStats.favGenre}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
-                                    <BarChart3 className="w-3 h-3 shrink-0" /> GENRE
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="h-10 flex items-center justify-center mb-1">
-                                    <span className="text-white font-black text-2xl font-mono leading-none">{displayAnimeCount}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[9px] text-hawk-textMuted uppercase font-bold tracking-widest h-5 text-center">
-                                    <BookOpen className="w-3 h-3 shrink-0" /> LOG
-                                </div>
-                            </div>
+                    <div className="bg-hawk-ui/20 border border-hawk-ui/60 rounded-[24px] p-5 shadow-xl flex flex-col items-center">
+                        <div className="text-white font-black text-2xl font-mono leading-none mb-2">{displayFollowers}</div>
+                        <div className="flex items-center gap-1.5 text-[8px] text-hawk-textMuted uppercase font-black tracking-[0.2em]">
+                            <Users className="w-3 h-3" /> Circle
+                        </div>
+                    </div>
+                    <div className="bg-hawk-ui/20 border border-hawk-ui/60 rounded-[24px] p-5 shadow-xl flex flex-col items-center">
+                        <div className="text-white font-black text-xl font-mono leading-none mb-2">{calculatedStats.watchTimeStr}</div>
+                        <div className="flex items-center gap-1.5 text-[8px] text-hawk-textMuted uppercase font-black tracking-[0.2em]">
+                            <Timer className="w-3 h-3" /> Watch
+                        </div>
+                    </div>
+                    <div className="bg-hawk-ui/20 border border-hawk-ui/60 rounded-[24px] p-5 shadow-xl flex flex-col items-center">
+                        <div className="text-hawk-gold font-black text-2xl font-mono leading-none mb-2">{calculatedStats.meanScore}</div>
+                        <div className="flex items-center gap-1.5 text-[8px] text-hawk-textMuted uppercase font-black tracking-[0.2em]">
+                            <Star className="w-3 h-3" /> Mean
                         </div>
                     </div>
                 </div>
@@ -316,58 +263,57 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
                 {!isOwnProfile && (
                     <button 
                         onClick={onFollow}
-                        className={`w-full max-w-sm py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 mb-10 active:scale-95 shadow-lg ${
-                            isFollowing ? 'bg-hawk-ui text-hawk-gold border border-hawk-gold/30' : 'bg-hawk-gold text-black'
+                        className={`w-full max-w-sm py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-2 mb-8 active:scale-95 shadow-lg border border-transparent ${
+                            isFollowing ? 'bg-hawk-ui text-hawk-gold border-hawk-gold/30' : 'bg-hawk-gold text-black hover:bg-white'
                         }`}
                     >
                         {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                        {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                        {isFollowing ? 'Following' : 'Follow'}
                     </button>
                 )}
             </div>
 
-            <div className="px-6 space-y-4 mb-16">
+            <div className="px-6 space-y-4 mb-20">
                 {profile.is_private && !isOwnProfile ? (
-                    <div className="flex flex-col items-center py-24 bg-hawk-ui/10 border border-dashed border-hawk-ui rounded-[40px] animate-fade-in">
-                        <Lock className="w-14 h-14 text-hawk-textMuted mb-4" />
-                        <p className="text-[10px] uppercase font-bold tracking-[0.4em] text-hawk-textMuted">Vault Locked</p>
+                    <div className="flex flex-col items-center py-20 bg-hawk-ui/10 border border-dashed border-hawk-ui/40 rounded-[32px] animate-fade-in">
+                        <Lock className="w-12 h-12 text-hawk-textMuted mb-3" />
+                        <p className="text-[8px] uppercase font-black tracking-[0.4em] text-hawk-textMuted">Private Access Only</p>
                     </div>
                 ) : (
                     <>
-                        <StatusCard status={AnimeStatus.Watching} label="WATCHING" icon={Tv} color="text-yellow-400" />
-                        <StatusCard status={AnimeStatus.Finished} label="FINISHED" icon={CheckCircle} color="text-emerald-400" />
-                        <StatusCard status={AnimeStatus.PlanToWatch} label="PLAN TO WATCH" icon={Clock} color="text-sky-400" />
-                        <StatusCard status={AnimeStatus.OnHold} label="ON-HOLD" icon={PauseCircle} color="text-zinc-400" />
-                        <StatusCard status={AnimeStatus.Dropped} label="DROPPED" icon={XCircle} color="text-red-500" />
+                        <StatusCard status={AnimeStatus.Watching} label="Watching" icon={Tv} color="text-yellow-400" />
+                        <StatusCard status={AnimeStatus.Finished} label="Finished" icon={CheckCircle} color="text-emerald-400" />
+                        <StatusCard status={AnimeStatus.PlanToWatch} label="Planned" icon={Clock} color="text-sky-400" />
+                        <StatusCard status={AnimeStatus.OnHold} label="On-Hold" icon={PauseCircle} color="text-zinc-400" />
+                        <StatusCard status={AnimeStatus.Dropped} label="Dropped" icon={XCircle} color="text-red-500" />
                     </>
                 )}
             </div>
 
             {isEditing && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-                    <div className="relative w-full max-w-[340px] max-h-[90vh] bg-hawk-surface border border-hawk-gold/30 rounded-[32px] p-6 shadow-2xl overflow-y-auto scrollbar-hide">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
+                    <div className="relative w-full max-w-[320px] max-h-[85vh] bg-hawk-surface border border-hawk-gold/30 rounded-[28px] p-6 shadow-2xl overflow-y-auto scrollbar-hide">
                         <button onClick={() => setIsEditing(false)} className="absolute top-4 right-4 p-2 text-hawk-textMuted hover:text-white transition-colors z-10">
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
-                        <h3 className="text-lg font-black uppercase tracking-[0.2em] text-hawk-gold text-center mb-6 italic">Edit Profile</h3>
-                        <div className="mb-8">
-                            <div className="w-20 h-20 mx-auto rounded-full border-2 border-hawk-gold shadow-lg overflow-hidden mb-4 bg-hawk-ui">
+                        <h3 className="text-sm font-black uppercase tracking-[0.3em] text-hawk-gold text-center mb-6 italic">Member Edit</h3>
+                        <div className="mb-6">
+                            <div className="w-16 h-16 mx-auto rounded-full border border-hawk-gold shadow-lg overflow-hidden mb-4 bg-hawk-ui">
                                 {editAvatarUrl ? (
                                     <img src={editAvatarUrl} alt="Preview" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                        <UserIcon className="w-8 h-8 text-hawk-textMuted" />
+                                        <UserIcon className="w-6 h-6 text-hawk-textMuted" />
                                     </div>
                                 )}
                             </div>
-                            <p className="text-[8px] uppercase tracking-[0.3em] text-hawk-textMuted text-center font-black mb-4 italic underline underline-offset-4">Avatars</p>
-                            <div className="grid grid-cols-4 gap-3 px-1">
-                                {PRESET_AVATARS.map((avatar) => (
+                            <div className="grid grid-cols-4 gap-2">
+                                {PRESET_AVATARS.slice(0, 8).map((avatar) => (
                                     <button
                                         key={avatar.name}
                                         onClick={() => setEditAvatarUrl(avatar.url)}
-                                        className={`aspect-square rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                                            editAvatarUrl === avatar.url ? 'border-hawk-gold scale-110 shadow-[0_0_10px_rgba(255,163,26,0.3)]' : 'border-hawk-ui grayscale opacity-50 hover:opacity-100 hover:grayscale-0'
+                                        className={`aspect-square rounded-lg overflow-hidden border transition-all ${
+                                            editAvatarUrl === avatar.url ? 'border-hawk-gold scale-105' : 'border-hawk-ui/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0'
                                         }`}
                                     >
                                         <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover" />
@@ -375,44 +321,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, animeList, on
                                 ))}
                             </div>
                         </div>
-                        <div className="mb-6 space-y-1.5">
-                            <div className="flex justify-between items-center px-1">
-                                <label className="text-[8px] font-black uppercase tracking-widest text-hawk-textMuted">Username</label>
-                                <span className={`text-[8px] font-black ${editUsername.length > 16 || editUsername.length < 2 ? 'text-red-500' : 'text-hawk-gold'}`}>
-                                    {editUsername.length}/16
-                                </span>
-                            </div>
+                        <div className="mb-5 space-y-1.5">
+                            <label className="text-[7px] font-black uppercase tracking-[0.3em] text-hawk-textMuted pl-1">Handle</label>
                             <input 
                                 type="text" 
                                 value={editUsername}
                                 onChange={(e) => setEditUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                                className="w-full bg-hawk-base border border-hawk-ui rounded-xl px-4 py-3 text-white font-black text-xs tracking-widest focus:border-hawk-gold focus:outline-none transition-all"
-                                placeholder="USERNAME_X"
+                                className="w-full bg-hawk-base border border-hawk-ui rounded-xl px-4 py-3 text-white font-black text-[10px] tracking-widest focus:border-hawk-gold focus:outline-none transition-all"
                             />
-                            <div className="flex items-center gap-1 text-[7px] text-hawk-textMuted uppercase font-bold tracking-tighter mt-1 px-1">
-                                <AlertCircle className="w-2 h-2" />
-                                change can be made once in a month
-                            </div>
                         </div>
-                        <div className="flex items-center justify-between mb-8 p-4 bg-hawk-base/50 rounded-xl border border-hawk-ui">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-1.5 rounded-lg ${editIsPrivate ? 'bg-hawk-gold/10 text-hawk-gold' : 'bg-hawk-ui text-hawk-textMuted'}`}>
-                                    <Shield className="w-3.5 h-3.5" />
-                                </div>
-                                <span className="text-[9px] font-black uppercase tracking-widest">Privacy: {editIsPrivate ? 'Private' : 'Public'}</span>
-                            </div>
+                        <div className="flex items-center justify-between mb-8 p-3 bg-hawk-base/50 rounded-xl border border-hawk-ui">
+                            <span className="text-[8px] font-black uppercase tracking-widest">Vault: {editIsPrivate ? 'Private' : 'Public'}</span>
                             <button 
                                 onClick={() => setEditIsPrivate(!editIsPrivate)}
-                                className={`w-10 h-5 rounded-full p-0.5 transition-all ${editIsPrivate ? 'bg-hawk-gold' : 'bg-hawk-ui'}`}
+                                className={`w-9 h-4.5 rounded-full p-0.5 transition-all ${editIsPrivate ? 'bg-hawk-gold' : 'bg-hawk-ui'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-all ${editIsPrivate ? 'translate-x-5' : 'translate-x-0'}`} />
+                                <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-md transform transition-all ${editIsPrivate ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
                         <button 
                             onClick={handleSaveProfile}
-                            className="w-full bg-hawk-gold text-black font-black uppercase tracking-[0.2em] py-4 rounded-xl shadow-xl hover:bg-yellow-400 active:translate-y-[2px] transition-all text-[10px]"
+                            className="w-full bg-hawk-gold text-black font-black uppercase tracking-[0.3em] py-3.5 rounded-xl shadow-xl hover:bg-white active:scale-95 transition-all text-[9px]"
                         >
-                            Save Changes
+                            Confirm Sync
                         </button>
                     </div>
                 </div>
