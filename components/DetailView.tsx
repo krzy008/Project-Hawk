@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Anime } from '../types';
-import { ChevronDown, Plus, Loader, Star, Layers, PlayCircle, Calendar, Tag, Edit3, Trash2, GitMerge, Sparkles } from 'lucide-react';
+import { ChevronDown, Plus, Loader, Star, Layers, PlayCircle, Calendar, Tag, Edit3, Trash2, GitMerge, Sparkles, CheckCircle2 } from 'lucide-react';
 import { api, ExternalAnime } from '../lib/api';
 import { QuickAddButton } from './QuickAddButton';
 
@@ -12,9 +12,10 @@ interface DetailViewProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onRelationClick?: (anime: Partial<Anime>) => void;
+  isInLibrary?: boolean;
 }
 
-export const DetailView: React.FC<DetailViewProps> = ({ anime, onBack, onAdd, onEdit, onDelete, onRelationClick }) => {
+export const DetailView: React.FC<DetailViewProps> = ({ anime, onBack, onAdd, onEdit, onDelete, onRelationClick, isInLibrary = false }) => {
   const [details, setDetails] = useState<ExternalAnime | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +61,6 @@ export const DetailView: React.FC<DetailViewProps> = ({ anime, onBack, onAdd, on
       return text.replace(/<[^>]*>?/gm, '').trim();
   };
 
-  const isLibraryMode = !onAdd; 
   const displayTitle = details?.title || anime.title;
   const displayNative = details?.titleNative || '';
   const displayImage = details?.coverImage || anime.coverUrl;
@@ -88,7 +88,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ anime, onBack, onAdd, on
          <button onClick={onBack} className="absolute top-safe left-6 z-50 p-3 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:bg-hawk-gold hover:text-black hover:border-hawk-gold transition-all duration-300">
             <ChevronDown className="w-6 h-6 rotate-90" />
          </button>
-         {isLibraryMode && (
+         {isInLibrary && (
              <div className="absolute top-safe right-6 z-50 flex gap-3">
                  <button onClick={onEdit} className="p-3 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:bg-white hover:text-black transition-all">
                      <Edit3 className="w-5 h-5" />
@@ -133,7 +133,15 @@ export const DetailView: React.FC<DetailViewProps> = ({ anime, onBack, onAdd, on
          </div>
 
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6 animate-slide-up delay-100 items-start">
-            {details && (
+            {isInLibrary ? (
+              <div className="col-span-1 sm:col-span-2 flex items-center gap-4 bg-hawk-gold/10 border border-hawk-gold/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(255,163,26,0.05)]">
+                <CheckCircle2 className="w-6 h-6 text-hawk-gold" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-hawk-gold uppercase tracking-[0.2em]">In Library</span>
+                  <span className="text-[9px] text-hawk-textMuted font-bold uppercase tracking-widest mt-0.5">Tracked & Synced</span>
+                </div>
+              </div>
+            ) : details && (
               <>
                 <QuickAddButton anime={details} className="w-full" />
                 <button
@@ -156,13 +164,6 @@ export const DetailView: React.FC<DetailViewProps> = ({ anime, onBack, onAdd, on
             )}
          </div>
          
-         {isLibraryMode && (
-             <div className="py-4 flex items-center gap-2">
-                 <div className="h-[2px] w-8 bg-hawk-gold" />
-                 <span className="text-xs text-hawk-gold uppercase tracking-[0.2em] font-bold">In Library</span>
-             </div>
-         )}
-
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-4 animate-slide-up delay-200">
              <div className="space-y-8 lg:col-span-2">
                  <p className="text-hawk-textSecondary text-sm md:text-base leading-relaxed font-bold whitespace-pre-wrap">

@@ -1,18 +1,23 @@
+
 import React from 'react';
 import { Anime, AnimeStatus } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { StarRating } from './StarRating';
 import { ProgressBar } from './ProgressBar';
 import { QuickAddButton } from './QuickAddButton';
+import { Edit3, Trash2 } from 'lucide-react';
 
 interface AnimeCardProps {
   anime: Anime;
   onClick: () => void;
+  isLibraryItem?: boolean;
+  onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 const FALLBACK_COVER = "https://placehold.co/400x600/000000/FFA31A?text=HAWK";
 
-export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
+export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryItem = false, onDelete, onEdit }) => {
   const getStatusShadowColor = (status: AnimeStatus) => {
     switch (status) {
       case AnimeStatus.Watching: return '#FACC15'; // yellow-400
@@ -68,7 +73,7 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
       <div className="p-3 flex flex-col justify-between flex-grow min-w-0 relative">
         <div className="relative z-10">
             <div className="flex justify-between items-start gap-3 mb-1">
-                <h3 className="font-bold text-white text-sm leading-snug line-clamp-2 group-hover:text-hawk-goldLight tracking-tight transition-colors uppercase pr-8">
+                <h3 className="font-bold text-white text-sm leading-snug line-clamp-2 group-hover:text-hawk-goldLight tracking-tight transition-colors uppercase pr-20">
                     {anime.title}
                 </h3>
             </div>
@@ -101,9 +106,28 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
           </div>
         </div>
 
-        {/* Quick Add Overlay */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 scale-90 origin-top-right">
-          <QuickAddButton anime={externalAnimeData} />
+        {/* Action Overlay - FIXED Visibility */}
+        <div className="absolute top-2 right-2 z-20 flex gap-2">
+          {isLibraryItem ? (
+            <>
+               <button 
+                  onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
+                  className="w-8 h-8 bg-hawk-ui border border-red-500/30 text-red-500 rounded-lg flex items-center justify-center shadow-xl transition-all hover:bg-red-500 hover:text-white active:scale-90"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+                  className="w-8 h-8 bg-hawk-gold text-black rounded-lg flex items-center justify-center shadow-xl transition-all hover:bg-white active:scale-90"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+            </>
+          ) : (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-90 origin-top-right">
+              <QuickAddButton anime={externalAnimeData} />
+            </div>
+          )}
         </div>
       </div>
     </div>

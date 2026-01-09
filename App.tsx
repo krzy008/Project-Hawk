@@ -35,21 +35,29 @@ const mapFromDb = (row: any): Anime => ({
 
 const sanitize = (val: string) => (val || '').replace(/[<>]/g, '').trim();
 
-const mapToDb = (anime: Partial<Anime>, userId: string) => ({
-    user_id: userId,
-    anime_id: Number(String(anime.id).replace(/\D/g, '')),
-    title: sanitize(anime.title || ''),
-    status: anime.status,
-    progress: anime.watched || 0,
-    total_episodes: anime.total || 0,
-    rating: anime.rating && anime.rating > 0 ? anime.rating : null,
-    season: sanitize(anime.season || ''),
-    notes: sanitize(anime.notes || '').slice(0, 3000),
-    cover_image: anime.coverUrl || '',
-    seasons: anime.seasons || [],
-    genres: (anime.genres || []).map(g => sanitize(g)),
-    duration: anime.duration || 24
-});
+// FIXED: Improved ID generation to prevent collisions for manual entries
+const mapToDb = (anime: Partial<Anime>, userId: string) => {
+    const idStr = String(anime.id || '');
+    const numericId = /^\d+$/.test(idStr) 
+        ? Number(idStr) 
+        : Math.abs(idStr.split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0));
+
+    return {
+        user_id: userId,
+        anime_id: numericId,
+        title: sanitize(anime.title || ''),
+        status: anime.status,
+        progress: anime.watched || 0,
+        total_episodes: anime.total || 0,
+        rating: anime.rating && anime.rating > 0 ? anime.rating : null,
+        season: sanitize(anime.season || ''),
+        notes: sanitize(anime.notes || '').slice(0, 3000),
+        cover_image: anime.coverUrl || '',
+        seasons: anime.seasons || [],
+        genres: (anime.genres || []).map(g => sanitize(g)),
+        duration: anime.duration || 24
+    };
+};
 
 type SortOption = 'title' | 'rating' | 'newest';
 
@@ -117,6 +125,11 @@ const App: React.FC = () => {
     const hawkRating = Number((watchDays * meanScore).toFixed(1));
     return { hawkRating, animeCount: animeList.length, meanScore };
   }, [animeList]);
+
+  // Fix: Reset status filter when switching library tabs to avoid getting stuck
+  useEffect(() => {
+    setStatusFilter('All');
+  }, [activeTab]);
 
   const checkActionLimit = () => {
     const now = Date.now();
@@ -318,11 +331,19 @@ const App: React.FC = () => {
     setView('detail');
   };
 
-  const handleDelete = async () => {
-    if (!selectedAnimeId || !session?.user?.id || session.user.id === PREVIEW_SESSION.user.id) return;
-    await supabase.from('watchlist').delete().eq('anime_id', Number(selectedAnimeId)).eq('user_id', session.user.id);
-    fetchAnime(session.user.id);
-    setView('list');
+  const handleDelete = async (id?: string) => {
+    const targetId = id || selectedAnimeId;
+    if (!targetId || !session?.user?.id || session.user.id === PREVIEW_SESSION.user.id) return;
+    
+    if (confirm("Delete this entry from library?")) {
+        const { error } = await supabase.from('watchlist').delete().eq('anime_id', Number(targetId)).eq('user_id', session.user.id);
+        if (error) {
+            alert("Delete failed: " + error.message);
+            return;
+        }
+        fetchAnime(session.user.id);
+        if (view === 'detail') setView('list');
+    }
   };
 
   const renderContent = () => {
@@ -333,9 +354,10 @@ const App: React.FC = () => {
         anime={anime} 
         onBack={handleBack} 
         onEdit={selectedAnimeId ? () => { pushHistory(); setView('edit'); } : undefined} 
-        onDelete={selectedAnimeId ? handleDelete : undefined} 
+        onDelete={selectedAnimeId ? () => handleDelete(selectedAnimeId) : undefined} 
         onAdd={selectedAnimeId ? undefined : (a) => { setDiscoverPrefill(a); pushHistory(); setView('add'); }} 
         onRelationClick={handleOpenDetail} 
+        isInLibrary={!!selectedAnimeId}
       />;
     }
     if (view === 'add') return <AnimeForm prefillData={discoverPrefill} onSubmit={handleAdd} onCancel={handleBack} />;
@@ -385,7 +407,6 @@ const App: React.FC = () => {
         followersCount: 0 
     } : undefined} />;
     
-    // ... Other views (list, discover, etc) same as before
     if (activeBottomTab === 'discover') return <DiscoverView onAdd={(d) => requireAuth(() => { setDiscoverPrefill(d); pushHistory(); setView('add'); })} onPreview={handleOpenDetail} onMenuOpen={() => setShowMenu(true)} userAvatar={session?.user?.user_metadata?.avatar_url} onHomeClick={handleHomeClick} refreshKey={refreshKey} dbTotalCount={dbTotalCount} />;
     
     return (
@@ -439,7 +460,9 @@ const App: React.FC = () => {
               ))}
           </div>
         </div>
-        <div className="p-4 grid gap-4"> {filteredAnime.map(a => <AnimeCard key={a.id} anime={a} onClick={() => handleOpenDetail(a)} />)} </div>
+        <div className="p-4 grid gap-4"> 
+          {filteredAnime.map(a => <AnimeCard key={a.id} anime={a} onClick={() => handleOpenDetail(a)} isLibraryItem={true} onDelete={() => handleDelete(a.id)} onEdit={() => { setSelectedAnimeId(a.id); pushHistory(); setView('edit'); }} />)} 
+        </div>
         {session && session.user.id !== PREVIEW_SESSION.user.id && <button onClick={() => requireAuth(() => { pushHistory(); setView('add'); })} className="fixed bottom-24 right-6 w-14 h-14 bg-hawk-gold rounded-full flex items-center justify-center text-black shadow-xl z-50"><Plus className="w-8 h-8" /></button>}
       </div>
     );
