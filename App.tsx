@@ -299,10 +299,18 @@ const App: React.FC = () => {
       alert("Too many actions — wait a moment");
       return;
     }
-    const { data: inserted, error } = await supabase.from('watchlist').upsert([mapToDb(data, session.user.id)]).select();
+    // Added onConflict to handle duplicates based on user_id and anime_id
+    const { data: inserted, error } = await supabase.from('watchlist')
+      .upsert([mapToDb(data, session.user.id)], { onConflict: 'user_id,anime_id' })
+      .select();
+      
     if (error) {
       console.error("Supabase Add Error:", error);
-      alert(`Save failed: ${error.message || 'Database error'}`);
+      if (error.message.includes('ON CONFLICT')) {
+          alert("Database Error: You need to run the UNIQUE constraint SQL fix in your Supabase Editor.");
+      } else {
+          alert(`Save failed: ${error.message || 'Database error'}`);
+      }
       return;
     }
     if (inserted) {

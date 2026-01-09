@@ -138,11 +138,6 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
     }
   };
 
-  const handleBypass = () => {
-    localStorage.setItem('hawk_debug_bypass', 'true');
-    window.location.reload();
-  };
-
   return (
     <div className="bg-hawk-surface/95 backdrop-blur-3xl border border-hawk-ui rounded-[28px] shadow-[0_0_80px_rgba(0,0,0,0.8)] p-8 md:p-10 relative overflow-hidden font-sans w-full max-w-[400px] mx-auto animate-slide-up ring-1 ring-white/10">
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-hawk-gold/30 to-transparent"></div>
@@ -164,7 +159,6 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
           <h1 className="text-xl font-black text-white uppercase tracking-[0.5em] italic leading-none">
             Hawk
           </h1>
-          <p className="text-[8px] text-hawk-textMuted uppercase tracking-[0.3em] font-bold mt-2">Secure Access Point</p>
         </div>
 
         {activeTab !== 'reset' ? (
@@ -271,7 +265,7 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
                   </>
                 ) : (
                   <div className="space-y-1.5">
-                      <label className="text-[7px] font-black text-hawk-textMuted uppercase tracking-[0.4em] pl-1">Handle or Email</label>
+                      <label className="text-[7px] font-black text-hawk-textMuted uppercase tracking-[0.4em] pl-1">Handle</label>
                       <div className="relative">
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-hawk-textMuted" />
                         <input
@@ -315,7 +309,7 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
                       onClick={() => { setActiveTab('reset'); setError(null); setSuccess(null); }}
                       className="text-[8px] font-black text-hawk-gold uppercase tracking-[0.3em] hover:text-white transition-colors underline underline-offset-4 decoration-hawk-gold/30"
                     >
-                      Forgot?
+                      Forgot Password
                     </button>
                   </div>
                 )}
@@ -346,19 +340,12 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
                     </svg>
-                    Google
+                    {activeTab === 'signin' ? 'Sign in with Google' : 'Sign up with Google'}
                 </button>
               </>
             )}
         </div>
       </div>
-
-      <button 
-        onClick={handleBypass}
-        className="mt-8 opacity-5 hover:opacity-50 transition-opacity text-[6px] font-black uppercase tracking-[0.6em] text-hawk-gold text-center w-full"
-      >
-        ROOT_SYNC_V1
-      </button>
     </div>
   );
 };

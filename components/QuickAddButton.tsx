@@ -44,7 +44,6 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Fixed: Properly check for Guest/Preview ID which should act as unauthenticated for write operations
       const userId = session?.user?.id;
       const isGuest = !userId || userId === '00000000-0000-0000-0000-000000000000';
       
@@ -90,11 +89,16 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
       setTimeout(() => setStatus('idle'), 2000);
     } catch (err: any) {
       console.error('HAWK QuickAdd Connection Error:', err);
-      setErrorMsg(err.message || 'Connection failed');
-      setStatus('error');
-      setTimeout(() => { setStatus('idle'); setErrorMsg(null); }, 4000);
       
-      // Fixed: If it's a login error, notify the app to show Auth
+      let friendlyError = err.message || 'Connection failed';
+      if (friendlyError.includes('ON CONFLICT')) {
+          friendlyError = "DB Fix Required: Run the UNIQUE SQL script in Supabase Editor.";
+      }
+      
+      setErrorMsg(friendlyError);
+      setStatus('error');
+      setTimeout(() => { setStatus('idle'); setErrorMsg(null); }, 5000);
+      
       if (err.message.includes("Login required")) {
         window.dispatchEvent(new CustomEvent('hawk_auth_required'));
       }
@@ -125,9 +129,12 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({ anime, className
       </button>
       
       {errorMsg && (
-        <div className="absolute top-full left-0 right-0 mt-2 flex items-center justify-center gap-1 text-[8px] font-black text-red-400 uppercase tracking-tighter bg-black/95 px-2 py-1.5 rounded-lg border border-red-500/20 z-[110] shadow-2xl animate-fade-in whitespace-nowrap">
-          <AlertCircle className="w-2.5 h-2.5" />
-          {errorMsg}
+        <div className="absolute top-full left-0 right-0 mt-2 flex flex-col items-center justify-center gap-1 text-[8px] font-black text-red-400 uppercase tracking-tighter bg-black/95 px-3 py-2 rounded-lg border border-red-500/20 z-[110] shadow-2xl animate-fade-in text-center">
+          <div className="flex items-center gap-1">
+            <AlertCircle className="w-2.5 h-2.5" />
+            <span>ERROR DETECTED</span>
+          </div>
+          <div className="opacity-80 mt-0.5 leading-tight">{errorMsg}</div>
         </div>
       )}
     </div>
