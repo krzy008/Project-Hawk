@@ -5,7 +5,7 @@ import { StatusBadge } from './StatusBadge';
 import { StarRating } from './StarRating';
 import { ProgressBar } from './ProgressBar';
 import { QuickAddButton } from './QuickAddButton';
-import { Edit3, Trash2 } from 'lucide-react';
+import { Edit3, Trash2, Star } from 'lucide-react';
 
 interface AnimeCardProps {
   anime: Anime;
@@ -31,7 +31,6 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryI
 
   const shadowColor = getStatusShadowColor(anime.status);
 
-  // Adapt Anime to ExternalAnime for the button
   const externalAnimeData = {
     id: anime.id,
     title: anime.title,
@@ -54,7 +53,7 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryI
       } as React.CSSProperties}
       className="group relative bg-hawk-ui/40 backdrop-blur-sm border border-hawk-ui rounded-2xl overflow-hidden cursor-pointer flex flex-row h-32 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-[0_6px_0_var(--status-shadow)]"
     >
-      {/* Image Left Side - Fixed width */}
+      {/* Image Left Side */}
       <div className="relative w-28 shrink-0 overflow-hidden bg-hawk-ui/20 rounded-l-2xl border-r border-hawk-ui/50">
         <img 
           src={anime.coverUrl || FALLBACK_COVER} 
@@ -62,11 +61,14 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryI
           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-300"
           referrerPolicy="no-referrer"
           loading="lazy"
-          onError={(e) => {
-              // Fallback for broken images
-              (e.target as HTMLImageElement).src = FALLBACK_COVER;
-          }}
         />
+        {/* Rating Badge - ALWAYS VISIBLE FROM OUTSIDE */}
+        {anime.rating > 0 && (
+          <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md rounded-md px-1.5 py-0.5 flex items-center gap-1 border border-hawk-gold/30 shadow-lg">
+            <Star className="w-2.5 h-2.5 fill-hawk-gold text-hawk-gold" />
+            <span className="text-[10px] font-black text-white font-mono">{anime.rating.toFixed(0)}</span>
+          </div>
+        )}
       </div>
 
       {/* Info Right Side */}
@@ -91,12 +93,6 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryI
              <div className="flex justify-between items-center text-[10px] text-hawk-textSecondary mb-1 font-mono tracking-wide font-bold">
                <div className="flex items-center gap-2">
                  <span>EP {anime.watched} / {anime.total > 0 ? anime.total : '?'}</span>
-                 {anime.rating > 0 && (
-                   <>
-                    <span className="text-hawk-ui">|</span>
-                    <StarRating rating={anime.rating} size="sm" />
-                   </>
-                 )}
                </div>
                <span className={anime.watched === anime.total && anime.total > 0 ? 'text-hawk-gold' : ''}>
                    {anime.total > 0 ? Math.round((anime.watched / anime.total) * 100) : 0}%
@@ -106,10 +102,10 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, isLibraryI
           </div>
         </div>
 
-        {/* Action Overlay - ALWAYS VISIBLE in Library */}
+        {/* Action Overlay */}
         <div className="absolute top-2 right-2 z-20 flex gap-2">
           {isLibraryItem ? (
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
                <button 
                   onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
                   title="Delete Entry"

@@ -35,14 +35,10 @@ const mapFromDb = (row: any): Anime => ({
 
 const sanitize = (val: string) => (val || '').replace(/[<>]/g, '').trim();
 
-// FIXED: Improved ID generation to prevent collisions for manual entries
-// It now hashes the title if no numeric ID is provided, ensuring different shows get different IDs
 const mapToDb = (anime: Partial<Anime>, userId: string) => {
     const idStr = String(anime.id || '');
     const titleStr = anime.title || '';
     
-    // If we have a numeric ID (from AniList/Jikan), use it. 
-    // Otherwise, generate a hash from the title to ensure uniqueness per show.
     const numericId = /^\d+$/.test(idStr) && idStr !== ''
         ? Number(idStr) 
         : Math.abs((idStr + titleStr).split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0));
@@ -76,17 +72,6 @@ interface HistoryState {
   viewingProfile: LeaderboardEntry | null;
 }
 
-const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-    { id: 'bot-1', rank: 1, username: 'Zenith', avatarUrl: 'https://i.pinimg.com/736x/6a/cb/1d/6acb1de989feaafa0d2869b1f3cfd9e2.jpg', hawkRating: 18.0, animeCount: 10, followersCount: 124 },
-    { id: 'bot-2', rank: 2, username: 'KaoriVibes', avatarUrl: 'https://images3.alphacoders.com/133/1335950.png', hawkRating: 14.4, animeCount: 9, followersCount: 85 },
-    { id: 'bot-4', rank: 3, username: 'LuffyFan99', avatarUrl: 'https://w0.peakpx.com/wallpaper/261/829/HD-wallpaper-monkey-d-luffy-portrait-artwork-manga-one-piece.jpg', hawkRating: 12.0, animeCount: 8, followersCount: 22 },
-];
-
-const MOCK_ANIME_FOR_OTHERS: Anime[] = [
-    { id: 'mock-1', title: 'One Piece', status: AnimeStatus.Watching, watched: 1116, total: 1116, rating: 10, season: 'Fall 1999', notes: 'Peak fiction.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21-69Y0pGatPAX8.jpg', genres: ['Action', 'Adventure', 'Comedy'], duration: 24 },
-    { id: 'mock-2', title: 'Death Note', status: AnimeStatus.Finished, watched: 37, total: 37, rating: 9, season: 'Fall 2006', notes: 'God of the new world.', coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx1535-7Xis7pmO6pCc.jpg', genres: ['Mystery', 'Psychological', 'Thriller'], duration: 23 },
-];
-
 const PREVIEW_SESSION = {
   user: {
     id: '00000000-0000-0000-0000-000000000000',
@@ -102,6 +87,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [animeList, setAnimeList] = useState<Anime[]>([]);
+  const [globalProfiles, setGlobalProfiles] = useState<LeaderboardEntry[]>([]);
   
   const [view, setView] = useState<ViewState>('discover');
   const [activeBottomTab, setActiveBottomTab] = useState<'discover' | 'library'>('discover');
@@ -122,7 +108,6 @@ const App: React.FC = () => {
 
   // Stats Calculation for Leaderboard & Profile
   const userHawkStats = useMemo(() => {
-    const finished = animeList.filter(a => a.status === AnimeStatus.Finished);
     const rated = animeList.filter(a => a.rating > 0);
     const meanScore = rated.length > 0 ? (rated.reduce((acc, curr) => acc + curr.rating, 0) / rated.length) : 0;
     const totalMinutes = animeList.reduce((acc, curr) => acc + ((curr.watched || 0) * (curr.duration || 24)), 0);
@@ -131,7 +116,6 @@ const App: React.FC = () => {
     return { hawkRating, animeCount: animeList.length, meanScore };
   }, [animeList]);
 
-  // Fix: Reset status filter when switching library tabs to avoid getting stuck
   useEffect(() => {
     setStatusFilter('All');
   }, [activeTab]);
@@ -163,6 +147,7 @@ const App: React.FC = () => {
         } else {
           setSession(null);
         }
+        await fetchLeaderboard();
       } catch (e) {
         console.error("Auth initialization failed", e);
         if (isBypassActive) setSession(PREVIEW_SESSION);
@@ -211,6 +196,42 @@ const App: React.FC = () => {
     }
   }, [refreshKey, initializing]);
 
+  // Sync user profile stats for real-time leaderboard
+  useEffect(() => {
+    if (session?.user?.id && session.user.id !== PREVIEW_SESSION.user.id && !loading) {
+        const syncProfile = async () => {
+            await supabase.from('profiles').upsert({
+                id: session.user.id,
+                username: session.user.user_metadata.username,
+                avatar_url: session.user.user_metadata.avatar_url,
+                hawk_rating: userHawkStats.hawkRating,
+                anime_count: userHawkStats.animeCount
+            });
+        };
+        syncProfile();
+    }
+  }, [userHawkStats, session]);
+
+  const fetchLeaderboard = async () => {
+    const { data } = await supabase.from('profiles')
+        .select('id, username, avatar_url, hawk_rating, anime_count')
+        .order('hawk_rating', { ascending: false })
+        .limit(50);
+    
+    if (data) {
+        const mapped: LeaderboardEntry[] = data.map((d, i) => ({
+            id: d.id,
+            rank: i + 1,
+            username: d.username,
+            avatarUrl: d.avatar_url,
+            hawkRating: d.hawk_rating || 0,
+            animeCount: d.anime_count || 0,
+            isPrivate: false
+        }));
+        setGlobalProfiles(mapped);
+    }
+  };
+
   const fetchAnime = async (userId: string) => {
     if (userId === PREVIEW_SESSION.user.id) return; 
     const { data } = await supabase.from('watchlist').select('*').eq('user_id', userId).order('created_at', { ascending: false });
@@ -239,7 +260,7 @@ const App: React.FC = () => {
       list = list.filter(a => a.title.toLowerCase().includes(q));
     }
     list.sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating;
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       if (sortBy === 'newest') return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime());
       return a.title.localeCompare(b.title);
     });
@@ -375,7 +396,6 @@ const App: React.FC = () => {
             avatar_url: viewingProfile.avatarUrl, 
             is_private: viewingProfile.isPrivate,
             hawkRating: viewingProfile.hawkRating,
-            followersCount: viewingProfile.followersCount,
             animeCount: viewingProfile.animeCount,
             id: viewingProfile.id
         } : { 
@@ -386,24 +406,10 @@ const App: React.FC = () => {
             hawkRating: userHawkStats.hawkRating,
             animeCount: userHawkStats.animeCount
         };
-        return <ProfileView profile={profileData} animeList={viewingProfile ? MOCK_ANIME_FOR_OTHERS : animeList} onBack={handleBack} isOwnProfile={isSelf} isFollowing={viewingProfile ? bookmarkedFriends.some(f => f.id === viewingProfile.id) : false} onUpdateProfile={async (data) => {
-            if (!session) return;
-            const { error } = await supabase.auth.updateUser({ data });
-            if (!error) {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) setSession((prev: any) => ({ ...prev, user }));
-            }
-        }} onFollow={() => {
-            requireAuth(() => {
-                if (viewingProfile) {
-                    const friend: FriendUser = { id: viewingProfile.id, username: viewingProfile.username, avatarUrl: viewingProfile.avatarUrl, status: 'Online', hawkRating: viewingProfile.hawkRating };
-                    setBookmarkedFriends(prev => prev.some(f => f.id === friend.id) ? prev.filter(f => f.id !== friend.id) : [...prev, friend]);
-                }
-            });
-        }} onAnimeClick={(id) => { const list = viewingProfile ? MOCK_ANIME_FOR_OTHERS : animeList; const a = list.find(x => x.id === id); if (a) handleOpenDetail(a); }} />;
+        return <ProfileView profile={profileData} animeList={viewingProfile ? [] : animeList} onBack={handleBack} isOwnProfile={isSelf} onAnimeClick={(id) => { const a = animeList.find(x => x.id === id); if (a) handleOpenDetail(a); }} />;
     }
-    if (view === 'leaderboard') return <LeaderboardView entries={MOCK_LEADERBOARD} onBack={handleBack} onUserClick={(id) => { 
-        const u = [...MOCK_LEADERBOARD, ...PREVIEW_BOTS].find(x => x.id === id); 
+    if (view === 'leaderboard') return <LeaderboardView entries={globalProfiles.length > 0 ? globalProfiles : PREVIEW_BOTS} onBack={handleBack} onUserClick={(id) => { 
+        const u = [...globalProfiles, ...PREVIEW_BOTS].find(x => x.id === id); 
         if (u) { pushHistory(); setViewingProfile(u); setView('profile'); } 
     }} currentUser={session && session.user.id !== PREVIEW_SESSION.user.id ? { 
         username: session.user.user_metadata.username, 
@@ -419,9 +425,7 @@ const App: React.FC = () => {
       <div className="bg-hawk-base min-h-screen pb-24 animate-fade-in">
         <div className="sticky top-0 z-40 bg-hawk-surface/95 backdrop-blur-xl border-b border-hawk-ui transition-all">
           <div className="flex items-center justify-between h-16 px-6 relative">
-             <button onClick={handleHomeClick} className="w-10 h-10 shrink-0 flex items-center justify-center hover:scale-105 transition-transform cursor-pointer relative group">
-                <Logo />
-             </button>
+             <button onClick={handleHomeClick} className="w-10 h-10 shrink-0 flex items-center justify-center hover:scale-105 transition-transform cursor-pointer relative group"><Logo /></button>
              <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
                 <h1 className="text-sm font-bold uppercase tracking-[0.4em] text-hawk-gold">H A W K</h1>
                 <span className="text-[8px] font-bold text-hawk-textMuted uppercase tracking-[0.2em]">Anime Watchlist Tracker</span>
@@ -469,16 +473,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="p-4 grid gap-4"> 
-          {filteredAnime.map(a => (
-            <AnimeCard 
-              key={a.id} 
-              anime={a} 
-              onClick={() => handleOpenDetail(a)} 
-              isLibraryItem={true} 
-              onDelete={() => handleDelete(a.id)} 
-              onEdit={() => { setSelectedAnimeId(a.id); pushHistory(); setView('edit'); }} 
-            />
-          ))} 
+          {filteredAnime.map(a => <AnimeCard key={a.id} anime={a} onClick={() => handleOpenDetail(a)} isLibraryItem={true} onDelete={() => handleDelete(a.id)} onEdit={() => { setSelectedAnimeId(a.id); pushHistory(); setView('edit'); }} />)} 
         </div>
         {session && session.user.id !== PREVIEW_SESSION.user.id && <button onClick={() => requireAuth(() => { pushHistory(); setView('add'); })} className="fixed bottom-24 right-6 w-14 h-14 bg-hawk-gold rounded-full flex items-center justify-center text-black shadow-xl z-50"><Plus className="w-8 h-8" /></button>}
       </div>
